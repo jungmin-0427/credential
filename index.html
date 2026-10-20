@@ -622,12 +622,14 @@ const STEPS = [
       ${items.length > 1 ? `<div class="s01-tabs" role="tablist" style="grid-template-columns:repeat(${items.length},1fr);margin:0">${items.map(([bid], i) => `<button type="button" role="tab" aria-selected="${i === k}" data-v="${i}">${BR[bid][0]}</button>`).join('')}</div>` : ''}
       <div class="voucher" style="--brand:${BR[id][1]}"><div class="voucher__h"><small>${BR[id][0]} · ${k + 1} of ${items.length}</small><b>${value}</b><small>${title}</small></div>
         <div class="voucher__b"><div class="bars"></div><div class="code">${['2371 3442 2377', '8806 1937 5520'][k] || '4410 2268 9031'}</div><p class="fine" style="margin-top:6px">Valid until 2027-06-30 · turn up screen brightness for faster scanning</p></div></div>
+      <dl class="kv"><div><dt>Status</dt><dd>Not used yet</dd></div>${value.startsWith('₩') && !value.includes('off') ? `<div><dt>Remaining balance</dt><dd>${value}</dd></div>` : ''}<div><dt>Checked</dt><dd>${today()}, 10:30</dd></div></dl>
+      <p class="fine" style="margin-top:-6px">Usage and balance are shown when available from the partner. <span style="color:var(--warn)">(공급사 API 확인 가능 시 표기 · C-06)</span></p>
       <div class="card" style="font-size:12.5px;display:grid;gap:6px"><div><b>Where to use</b><br>${{ oy: 'Olive Young stores in Korea', gs: 'GS25 convenience stores in Korea', kfv: 'Korean Folk Village ticket office, Yongin' }[id]}</div><div><b>How to use</b><br>Show this barcode at the counter before you pay.</div></div>
-      <div class="card s01-notes"><b>Notes</b><ul><li>Cannot be exchanged for cash.</li><li>Usage and remaining balance are not shown on this page.</li><li>Follows the partner's voucher policy.</li></ul></div>
+      <div class="card s01-notes"><b>Notes</b><ul><li>Cannot be exchanged for cash.</li><li>Usage status and balance may take time to update.</li><li>Follows the partner's voucher policy.</li></ul></div>
       <button type="button" class="btn btn--line" data-goto="S-03P">Back to my package</button></div>`; },
     panel: { who: 'SKP · 제휴 사용처', where: 'SKP 페이지 → 매장',
-      proc: ['패키지 지급 직후 자동 진입 (또는 내 패키지에서 View voucher)', '패키지 안 쿠폰을 탭으로 전환: 쿠폰번호·바코드·유효기간·사용처·이용 방법', '매장에서 바코드 제시 → 공급사가 사용 처리 (기존 정산)', '사용 여부·잔액: 공급사 API로 확인 가능한 경우에 표기'],
-      data: [['SKP → 고객', '쿠폰번호·바코드 (본인 로그인 시에만)']],
+      proc: ['패키지 지급 직후 자동 진입 (또는 내 패키지에서 View voucher)', '패키지 안 쿠폰을 탭으로 전환: 쿠폰번호·바코드·유효기간·사용처·이용 방법', '매장에서 바코드 제시 → 공급사가 사용 처리 (기존 정산)', '사용 여부·잔액: 공급사 API로 확인 가능한 경우에 표기 (조회 시점 함께 표시, 불가 시 미표기)'],
+      data: [['SKP → 고객', '쿠폰번호·바코드 (본인 로그인 시에만)'], ['공급사 → SKP', '사용 여부·잔액 (조회 API 지원 시)']],
       ask: [] } }
 ];
 const IDX = Object.fromEntries(STEPS.map((s, i) => [s.id, i]));
