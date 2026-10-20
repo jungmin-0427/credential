@@ -364,18 +364,18 @@ const helpSheet = () => {
     <p class="lead" style="font-size:13px">We use your AIR login to find your promotion history, so you don't need to share contact details.</p>
     <button type="button" class="btn btn--skp" data-help-login>Log in with AIR</button>`;
   if (S.help === 'form') return `${head('How can we help?')}
-    <p class="lead" style="font-size:13px">Choose a topic and tell us what happened. Your membership and benefit history are linked automatically.</p>
+    <p class="lead" style="font-size:13px">Choose a topic and tell us what happened. Your membership and benefit history are linked automatically. No email or phone number needed.</p>
+    ${S.inq.length ? `<button type="button" class="s01-myv" style="margin:0;text-align:left;padding:0" data-help-home><b>View my inquiries (${S.inq.length}) →</b></button>` : ''}
     <label class="fld"><span>Topic</span><select id="inq-topic">${TOPICS.map(x => `<option>${x}</option>`).join('')}</select></label>
     <label class="fld"><span>What can we help with?</span><textarea id="inq-text" maxlength="1000" placeholder="Tell us what happened and which step you were on."></textarea><small id="inq-count">0 / 1,000</small></label>
     <div class="alert alert--danger" style="background:var(--warn-soft);color:#5c3b00">Please don't enter your name, email, phone number, passport details or other sensitive information.</div>
-    <div style="display:grid;grid-template-columns:1fr 2fr;gap:8px"><button type="button" class="btn btn--line" data-help-home>Back</button><button type="button" class="btn btn--skp" data-help-send disabled>Send</button></div>`;
-  return `${head('We\'re here to help')}
-    <p class="lead" style="font-size:13px">Ask here and check replies right here. No email or phone number needed.</p>
-    <button type="button" class="btn btn--skp" data-help-new>Start an inquiry</button>
-    <b style="font-size:13px">My inquiries</b>
+    <div style="display:grid;grid-template-columns:1fr 2fr;gap:8px"><button type="button" class="btn btn--line" data-help-close>Cancel</button><button type="button" class="btn btn--skp" data-help-send disabled>Send</button></div>`;
+  return `${head('My inquiries')}
+    <p class="lead" style="font-size:13px">Replies are posted here.</p>
     ${S.inq.length ? S.inq.slice().reverse().map(q => `<div class="inq"><div class="inq__top"><span>${q.topic} · ${q.date}</span><span class="st ${ST[q.status][1]}">${ST[q.status][0]}</span></div>
         <div class="inq__text">${q.text.replace(/</g, '&lt;')}</div>${q.reply ? `<div class="inq__reply"><b>Reply from OK Cashbag</b>${q.reply}</div>` : '<p class="fine">We\'ll post our reply here.</p>'}</div>`).join('')
-      : '<p class="fine" style="text-align:center;padding:14px;border:1.5px dashed var(--line);border-radius:12px">Your inquiries and replies will appear here.</p>'}`;
+      : '<p class="fine" style="text-align:center;padding:14px;border:1.5px dashed var(--line);border-radius:12px">Your inquiries and replies will appear here.</p>'}
+    <button type="button" class="btn btn--line" data-help-new>New inquiry</button>`;
 };
 const vc = (tier, st = 'Valid') => `<div class="vc" data-tier="${tier}"><div class="vc__top"><span class="vc__logo">air.</span><span class="vc__st">${st}</span></div>
   <div class="vc__ey">AIRASIA MEMBERSHIP · CREDENTIAL</div><div class="vc__t">${TIERS[tier].name} Membership Credential</div><div class="vc__m">ISSUER · AIRASIA<br>ISSUED: ${today().toUpperCase()}</div></div>`;
@@ -689,7 +689,7 @@ const STEPS = [
   { id: 'S-05', phase: 4, own: 'skp', name: '고객 문의 (Help)', url: URL_SKP, common: true,
     screen: pageS01,                                             // 문의 시트는 어느 SKP 화면 위에서든 열림 (여기서는 메인 위)
     panel: { who: 'SKP (고객센터 · Admin)', where: '모든 SKP 화면 상단 ? 아이콘 → 바텀시트',
-      proc: ['상단 바 ? 아이콘 → 문의 시트 (로그인 전이면 로그인 안내)', '로그인 상태에서만 등록, AIR 식별자로 참여·검증·지급 이력 자동 연결', '문의 유형 + 내용만 입력 (이메일·전화번호·이름 미수집, 개인정보 입력 금지 안내)', '답변은 시트 안 "My inquiries"에서 확인 (Received → Answered)'],
+      proc: ['상단 바 ? 아이콘 → 바로 문의 입력 시트 (로그인 전이면 로그인 안내)', '로그인 상태에서만 등록, AIR 식별자로 참여·검증·지급 이력 자동 연결', '문의 유형 + 내용만 입력 (이메일·전화번호·이름 미수집, 개인정보 입력 금지 안내)', '등록 후 내 문의 목록으로 전환, 답변 확인 (Received → Answered). 입력 시트의 View my inquiries 링크로도 이동'],
       data: [['고객 → SKP', '문의 유형·내용 (+ AIR 식별자 자동 연결)'], ['SKP Admin → 고객', '답변']],
       ask: [] } }
 ];
@@ -766,7 +766,7 @@ const EN = {
     proc: ['Opens right after the package is issued (or via View voucher in My package)', 'Vouchers in the package are listed as cards, same as screen 11', 'Tap a voucher to open its own detail sheet: code · barcode · validity · where · how to use', 'Show the barcode in store → the partner processes redemption (existing settlement)', 'Usage · balance: shown when available via partner API (with lookup time; hidden if unavailable)'],
     data: [['SKP → customer', 'Voucher code · barcode (only when logged in)'], ['Partner → SKP', 'Usage · balance (if the lookup API is supported)']], ask: [] },
   'S-05': { name: 'Customer inquiry (Help)', who: 'SKP (customer service · Admin)', where: '? icon in the top bar of every SKP screen → bottom sheet',
-    proc: ['? icon in the top bar → inquiry sheet (asks to log in first if not logged in)', 'Only logged-in users can submit; participation · verification · issuance history is linked by AIR identifier', 'Only topic + message are entered (no email · phone · name; users are told not to enter personal data)', 'Replies appear in "My inquiries" inside the sheet (Received → Answered)'],
+    proc: ['? icon in the top bar → opens the inquiry form directly (asks to log in first if not logged in)', 'Only logged-in users can submit; participation · verification · issuance history is linked by AIR identifier', 'Only topic + message are entered (no email · phone · name; users are told not to enter personal data)', 'After sending, the sheet switches to My inquiries with replies (Received → Answered); also reachable via View my inquiries in the form'],
     data: [['Customer → SKP', 'Topic · message (+ AIR identifier linked automatically)'], ['SKP Admin → customer', 'Reply']], ask: [] }
 };
 let LANG = 'ko';
@@ -793,7 +793,7 @@ function show(id) {
   cur = next;
   const s = STEPS[cur], o = OWN[s.own];
   if (s.id === 'S-03') S.verified = true;
-  if (s.id === 'S-05') { S.loggedIn = true; S.help = S.help || 'home'; }   // 문의 단계는 로그인 상태로 시연
+  if (s.id === 'S-05') { S.loggedIn = true; S.help = S.help || 'form'; }   // 문의 단계는 로그인 상태로 시연
   $('#owner').style.setProperty('--c', o.c);
   $('#owner').innerHTML = `<span>${ownLabel(s.own)}${s.host ? ` <small>· ${t('over_' + s.host)}</small>` : ''}</span><small>${s.id}</small>`;
   $('#addr').innerHTML = `<svg class="i lock"><use href="#i-lock"/></svg><b>${s.url}</b>${s.host === 'aa' || s.own === 'aa' ? `<span class="fine">${t('ex')}</span>` : ''}`;
@@ -853,7 +853,7 @@ document.addEventListener('click', e => {
   const el = e.target.closest('[data-goto], [data-sdk], [data-login], [data-claim], [data-cancel], [data-confirm], [data-tab], [data-vo], [data-vclose], [data-v], [data-help], [data-help-close], [data-help-new], [data-help-home], [data-help-send], [data-help-login], [data-myv], tr[data-go]');
   if (!el) return;
   /* 문의 시트 */
-  if (el.hasAttribute('data-help')) { S.help = 'home'; return renderOverlay(); }
+  if (el.hasAttribute('data-help')) { S.help = 'form'; return renderOverlay(); }   // ? 아이콘 → 바로 문의 입력
   if (el.hasAttribute('data-help-close')) { S.help = null; return renderOverlay(); }
   if (el.hasAttribute('data-help-new')) { S.help = 'form'; return renderOverlay(); }
   if (el.hasAttribute('data-help-home')) { S.help = 'home'; return renderOverlay(); }
@@ -880,7 +880,7 @@ document.addEventListener('click', e => {
   if (el.hasAttribute('data-login')) {                         // SKP 로그인 후 분기
     const after = S.afterLogin; S.afterLogin = null; S.loggedIn = true;
     if (S.scn === 'returning') { S.verified = true; S.claimed = true; }
-    if (after === 'help') { show('S-01'); S.help = 'home'; return renderOverlay(); }   // 문의하려고 로그인 → 문의 시트로 복귀
+    if (after === 'help') { show('S-01'); S.help = 'form'; return renderOverlay(); }   // 문의하려고 로그인 → 문의 입력으로 복귀
     if (after === 'vouchers' && S.claimed) { S.vopen = null; return show('S-04'); }    // 수령 고객 → 내 쿠폰 목록
     if (S.claimed || S.verified) return show('S-03P');                                 // 검증만 한 고객 → 패키지
     return show(S.agreed ? 'S-VERIFY' : 'S-02');
