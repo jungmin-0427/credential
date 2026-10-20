@@ -44,6 +44,9 @@
   .tag--skp { background: var(--skp-soft); color: var(--skp); }
   .top button { padding: 6px 12px; border: 1px solid #4A5372; border-radius: 6px; background: transparent; color: #fff; font-size: 12.5px; }
   .top button:hover { background: #26304d; }
+  .lang { display: inline-flex; padding: 2px; border: 1px solid #4A5372; border-radius: 8px; }
+  .lang button { border: 0 !important; padding: 4px 10px !important; border-radius: 6px !important; font-weight: 700; }
+  .lang button[aria-pressed="true"] { background: #fff !important; color: var(--ink) !important; }
 
   /* ---------- 3단 레이아웃 ---------- */
   .layout { display: grid; grid-template-columns: 260px 400px minmax(0, 1fr); gap: 24px; max-width: 1400px; margin: 0 auto; padding: 20px; align-items: start; }
@@ -267,9 +270,10 @@
 </svg>
 
 <header class="top">
-  <strong>AIR Credential · End-to-End Flow <span style="font-weight:500;opacity:.7">(MOCA 싱크용 v0.1)</span></strong>
-  <div class="legend"><span class="tag tag--aa">AirAsia 페이지</span><span class="tag tag--sdk">AIR SDK 화면 (MOCA 제공)</span><span class="tag tag--skp">SKP 페이지</span></div>
-  <button type="button" id="btn-summary">전체 단계 요약표</button>
+  <strong>AIR Credential · End-to-End Flow <span style="font-weight:500;opacity:.7" data-i18n="sub">(MOCA 싱크용 v0.1)</span></strong>
+  <div class="legend"><span class="tag tag--aa" data-i18n="lg_aa">AirAsia 페이지</span><span class="tag tag--sdk" data-i18n="lg_sdk">AIR SDK 화면 (MOCA 제공)</span><span class="tag tag--skp" data-i18n="lg_skp">SKP 페이지</span></div>
+  <button type="button" id="btn-summary" data-i18n="sum_btn">전체 단계 요약표</button>
+  <div class="lang" role="group" aria-label="Language"><button type="button" data-lang="ko">KO</button><button type="button" data-lang="en">EN</button></div>
 </header>
 
 <div class="layout">
@@ -277,24 +281,24 @@
   <aside class="col col--map">
     <div class="box"><h2>JOURNEY MAP</h2><div id="map"></div></div>
     <div class="box scn">
-      <h2>시나리오</h2>
-      <label>AirAsia 회원 등급 <select id="opt-tier"><option value="black">Black</option><option value="platinum">Platinum</option><option value="gold" selected>Gold</option><option value="red">Red</option></select></label>
-      <label><input type="radio" name="scn" value="normal" checked> 정상 (생성 → 검증 → 지급)</label>
-      <label><input type="radio" name="scn" value="nocred"> Credential 미보유로 SKP 진입</label>
-      <label><input type="radio" name="scn" value="returning"> 재방문 (검증 완료 고객)</label>
-      <p class="fine" style="margin-top:6px">시나리오를 바꾸면 처음 화면으로 돌아갑니다.</p>
+      <h2 data-i18n="scn">시나리오</h2>
+      <label><span data-i18n="tier">AirAsia 회원 등급</span> <select id="opt-tier"><option value="black">Black</option><option value="platinum">Platinum</option><option value="gold" selected>Gold</option><option value="red">Red</option></select></label>
+      <label><input type="radio" name="scn" value="normal" checked> <span data-i18n="scn_normal">정상 (생성 → 검증 → 지급)</span></label>
+      <label><input type="radio" name="scn" value="nocred"> <span data-i18n="scn_nocred">Credential 미보유로 SKP 진입</span></label>
+      <label><input type="radio" name="scn" value="returning"> <span data-i18n="scn_ret">재방문 (검증 완료 고객)</span></label>
+      <p class="fine" style="margin-top:6px" data-i18n="scn_note">시나리오를 바꾸면 처음 화면으로 돌아갑니다.</p>
     </div>
   </aside>
 
   <!-- 가운데: 폰 -->
-  <section class="stage" aria-label="화면 미리보기">
+  <section class="stage" aria-label="Screen preview">
     <div class="owner" id="owner"></div>
     <div class="phone">
       <div class="addr" id="addr"></div>
       <div class="page" id="page"></div>
       <div class="overlay" id="overlay"></div>
     </div>
-    <div class="nav"><button type="button" id="prev">← 이전</button><span class="pos" id="pos"></span><button type="button" id="next">다음 →</button></div>
+    <div class="nav"><button type="button" id="prev" data-i18n="prev">← 이전</button><span class="pos" id="pos"></span><button type="button" id="next" data-i18n="next">다음 →</button></div>
   </section>
 
   <!-- 오른쪽: 이 화면에서 일어나는 일 -->
@@ -302,8 +306,8 @@
 </div>
 
 <div class="modal" id="modal" hidden><div role="dialog" aria-modal="true" aria-labelledby="sum-t">
-  <div style="display:flex;justify-content:space-between;align-items:center"><h2 id="sum-t">전체 단계 요약</h2><button type="button" id="sum-close" class="btn btn--line" style="width:auto;min-height:36px">닫기</button></div>
-  <p class="fine">행을 누르면 해당 화면으로 이동합니다. SDK 처리와 데이터는 가정이며 MOCA 확인 필요 항목은 Q 번호로 표시했습니다.</p>
+  <div style="display:flex;justify-content:space-between;align-items:center"><h2 id="sum-t" data-i18n="sum_t">전체 단계 요약</h2><button type="button" id="sum-close" class="btn btn--line" style="width:auto;min-height:36px" data-i18n="close">닫기</button></div>
+  <p class="fine" data-i18n="sum_desc">행을 누르면 해당 화면으로 이동합니다. SDK 처리와 데이터는 가정이며 MOCA 확인 필요 항목은 Q 번호로 표시했습니다.</p>
   <table id="sum-table"></table>
 </div></div>
 
@@ -348,7 +352,7 @@ const pageA01 = () => `${hdAA()}<div class="p" style="--c:var(--aa)">
   <div class="chips"><span class="chip">Black</span><span class="chip">Platinum</span><span class="chip">Gold</span><span class="chip">Red</span></div>
   <ol class="steps"><li><span><b>Get your credential here</b>Your tier is saved to your AIR Wallet.</span></li><li><span><b>Claim on OK Cashbag</b>Verify it and get your package in Korea.</span></li></ol>
   <button type="button" class="btn btn--aa" data-goto="A-02">Get my membership credential</button>
-  <p class="fine">SKP 제안 화면 · 실제 구현은 AirAsia</p></div>`;
+  <p class="fine">${t('aa_note')}</p></div>`;
 /* S-01: 서울 일러스트(남산타워 · 한옥 · 민속촌) 포함 프로모션 메인 */
 const SEOUL_SVG = `<svg class="seoul" viewBox="0 0 360 210" role="img" aria-label="Illustration of Seoul: N Seoul Tower on Namsan, city skyline and a traditional hanok roof">
   <defs><linearGradient id="g-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFE3D6"/><stop offset="1" stop-color="#E5EEFF"/></linearGradient></defs>
@@ -505,7 +509,7 @@ const STEPS = [
       ${vc(S.tier)}
       <button type="button" class="btn btn--aa" data-goto="S-01">Get benefits on OK Cashbag →</button>
       <p class="fine">We've also sent this link to you by email and SMS.</p>
-      <p class="fine">SKP 제안 화면 · 실제 구현은 AirAsia</p></div>`,
+      <p class="fine">${t('aa_note')}</p></div>`,
     panel: { who: 'AirAsia', where: 'AirAsia 웹/앱 (SKP 제안안)',
       proc: ['생성 완료 안내', 'SKP 프로모션 페이지로 이동 (다른 도메인)', '나중에 들어올 수 있도록 이메일·SMS로 링크 발송'],
       data: [['AirAsia → SKP', '링크 이동만 (유입 경로 파라미터 외 개인정보 전달 없음)']],
@@ -623,7 +627,7 @@ const STEPS = [
       <div class="voucher" style="--brand:${BR[id][1]}"><div class="voucher__h"><small>${BR[id][0]} · ${k + 1} of ${items.length}</small><b>${value}</b><small>${title}</small></div>
         <div class="voucher__b"><div class="bars"></div><div class="code">${['2371 3442 2377', '8806 1937 5520'][k] || '4410 2268 9031'}</div><p class="fine" style="margin-top:6px">Valid until 2027-06-30 · turn up screen brightness for faster scanning</p></div></div>
       <dl class="kv"><div><dt>Status</dt><dd>Not used yet</dd></div>${value.startsWith('₩') && !value.includes('off') ? `<div><dt>Remaining balance</dt><dd>${value}</dd></div>` : ''}<div><dt>Checked</dt><dd>${today()}, 10:30</dd></div></dl>
-      <p class="fine" style="margin-top:-6px">Usage and balance are shown when available from the partner. <span style="color:var(--warn)">(공급사 API 확인 가능 시 표기 · C-06)</span></p>
+      <p class="fine" style="margin-top:-6px">Usage and balance are shown when available from the partner. <span style="color:var(--warn)">${t('api_note')}</span></p>
       <div class="card" style="font-size:12.5px;display:grid;gap:6px"><div><b>Where to use</b><br>${{ oy: 'Olive Young stores in Korea', gs: 'GS25 convenience stores in Korea', kfv: 'Korean Folk Village ticket office, Yongin' }[id]}</div><div><b>How to use</b><br>Show this barcode at the counter before you pay.</div></div>
       <div class="card s01-notes"><b>Notes</b><ul><li>Cannot be exchanged for cash.</li><li>Usage status and balance may take time to update.</li><li>Follows the partner's voucher policy.</li></ul></div>
       <button type="button" class="btn btn--line" data-goto="S-03P">Back to my package</button></div>`; },
@@ -633,7 +637,91 @@ const STEPS = [
       ask: [] } }
 ];
 const IDX = Object.fromEntries(STEPS.map((s, i) => [s.id, i]));
-const PH = { 1: 'Phase 1 · AirAsia 생성 (Issuer)', 2: 'Phase 2 · SKP 검증 (Verifier)', 3: 'Phase 3 · 혜택 지급 · 사용' };
+
+/* ===== 다국어 (KO / EN): 화면 밖 설명 영역. 폰 화면 문구는 원래 영어 ===== */
+const UI = {
+  ko: { sub: '(MOCA 싱크용 v0.1)', lg_aa: 'AirAsia 페이지', lg_sdk: 'AIR SDK 화면 (MOCA 제공)', lg_skp: 'SKP 페이지', sum_btn: '전체 단계 요약표',
+        scn: '시나리오', tier: 'AirAsia 회원 등급', scn_normal: '정상 (생성 → 검증 → 지급)', scn_nocred: 'Credential 미보유로 SKP 진입', scn_ret: '재방문 (검증 완료 고객)',
+        scn_note: '시나리오를 바꾸면 처음 화면으로 돌아갑니다.', prev: '← 이전', next: '다음 →',
+        sum_t: '전체 단계 요약', close: '닫기', sum_desc: '행을 누르면 해당 화면으로 이동합니다. SDK 처리와 데이터는 가정이며 MOCA 확인 필요 항목은 Q 번호로 표시했습니다.',
+        own_aa: 'AirAsia 페이지', own_sdk: 'AIR SDK 화면 · MOCA 제공', own_skp: 'SKP 페이지', over_aa: 'AirAsia 페이지 위에 표시', over_skp: 'SKP 페이지 위에 표시',
+        ex: '(예시)', who: '주체', where: '화면 위치', proc: '처리 내용', data: '주고받는 데이터', dir: '방향', item: '항목', none: '없음',
+        ask: 'MOCA 확인 필요', ask_none: '없음 (SKP 내부 처리)', branch: '분기',
+        th: ['#', '화면', '영역', '처리 내용', '주고받는 데이터', 'MOCA 확인'],
+        ph: { 1: 'Phase 1 · AirAsia 생성 (Issuer)', 2: 'Phase 2 · SKP 검증 (Verifier)', 3: 'Phase 3 · 혜택 지급 · 사용' },
+        aa_note: 'SKP 제안 화면 · 실제 구현은 AirAsia', api_note: '(공급사 API 확인 가능 시 표기 · C-06)' },
+  en: { sub: '(for MOCA sync · v0.1)', lg_aa: 'AirAsia page', lg_sdk: 'AIR SDK screen (by MOCA)', lg_skp: 'SKP page', sum_btn: 'Step summary',
+        scn: 'Scenario', tier: 'AirAsia member tier', scn_normal: 'Normal (create → verify → issue)', scn_nocred: 'Enter SKP without a credential', scn_ret: 'Returning (already verified)',
+        scn_note: 'Changing the scenario returns to the first screen.', prev: '← Prev', next: 'Next →',
+        sum_t: 'Step summary', close: 'Close', sum_desc: 'Click a row to open that screen. SDK processing and data are assumptions; items to confirm with MOCA are marked with Q numbers.',
+        own_aa: 'AirAsia page', own_sdk: 'AIR SDK screen · by MOCA', own_skp: 'SKP page', over_aa: 'shown over the AirAsia page', over_skp: 'shown over the SKP page',
+        ex: '(example)', who: 'Owner', where: 'Location', proc: 'What happens', data: 'Data exchanged', dir: 'Direction', item: 'Item', none: 'None',
+        ask: 'To confirm with MOCA', ask_none: 'None (handled internally by SKP)', branch: 'branch',
+        th: ['#', 'Screen', 'Area', 'What happens', 'Data exchanged', 'MOCA Qs'],
+        ph: { 1: 'Phase 1 · AirAsia credential creation (Issuer)', 2: 'Phase 2 · SKP verification (Verifier)', 3: 'Phase 3 · Benefit issuance · use' },
+        aa_note: 'SKP proposal · actual implementation by AirAsia', api_note: '(shown if available via partner API · C-06)' }
+};
+const EN = {
+  'A-01': { name: 'AirAsia promotion page', who: 'AirAsia', where: 'AirAsia web/app (SKP proposal)',
+    proc: ['Entry via AirAsia app banner, push or email', '[Get my membership credential] → calls AIR SDK login'], data: [],
+    ask: ['Q1. Scope, schedule and exposure channels of the AirAsia page', 'Q2. Whether AIR login (especially Google) works inside the app webview'] },
+  'A-02': { name: 'AIR login (on AirAsia)', who: 'MOCA (AIR SDK)', where: 'SDK screen over the AirAsia page',
+    proc: ['AIR SDK login (AIR Identity)', 'AirAsia receives the AIR account identifier', 'AirAsia member account ↔ AIR account linking'],
+    data: [['AIR SDK → AirAsia', 'AIR account identifier']],
+    ask: ['Q3. When the AirAsia member login is linked to the AIR account (is an AirAsia login required first?)', 'Q4. Supported login methods (besides Google · email)'] },
+  'A-ISSUE': { name: 'Tier lookup · credential creation', who: 'AirAsia (Issuer) · MOCA', where: 'SDK screen over the AirAsia page',
+    proc: ['AirAsia server looks up the member tier', 'Requests credential creation with the tier value (Issuer: AirAsia)', 'MOCA creation infrastructure → stored in the customer\'s AIR Wallet', 'SKP is not involved (receives no creation history or member list)'],
+    data: [['AirAsia → AIR SDK', 'tier (Black/Platinum/Gold/Red), validity period'], ['AIR SDK → AIR Wallet', 'AirAsia Membership Credential']],
+    ask: ['Q5. Credential schema: name, attributes (tier enum, validity, etc.) and tier values', 'Q6. Re-creation / renewal policy; whether existing credentials are revoked when the tier changes', 'Q7. Whether several credentials can accumulate in one account (SKP applies the highest tier)'] },
+  'A-03': { name: 'Credential created', who: 'AirAsia', where: 'AirAsia web/app (SKP proposal)',
+    proc: ['Creation complete message', 'Moves to the SKP promotion page (different domain)', 'Sends the link by email · SMS for later access'],
+    data: [['AirAsia → SKP', 'Link only (no personal data beyond referral parameters)']],
+    ask: ['Q8. Whether referral (utm) parameters are added to the SKP link', 'Q9. Who sends the email · SMS, and when'] },
+  'S-01': { name: 'SKP promotion main', who: 'SKP', where: 'Sub-path under the OCB domain · AIR SDK embedded',
+    proc: ['Entry via the A-03 button or the email · SMS link', 'Sections: hero (Seoul illustration) · 3 steps · tier package preview (tabs) · how to use · where to use · FAQ · notes · sticky login', 'Tier tabs are a preview only, not a tier selection (the tier is fixed at verification)', '[Log in with AIR] → calls AIR SDK login'],
+    data: [], ask: ['Q10. Process to register SKP domains (dev · staging · prod) as allowed SDK origins'] },
+  'S-LOGIN': { name: 'AIR login (on SKP)', who: 'MOCA (AIR SDK)', where: 'SDK screen over the SKP page',
+    proc: ['AIR SDK login (SKP as partner)', 'SKP server looks up consent · verification history by AIR identifier', 'Branch: verified → My package / no consent → consent / consent only → verify directly'],
+    data: [['AIR SDK → SKP', 'AIR account identifier']],
+    ask: ['Q11. Can the AirAsia login session be reused on SKP (SSO), or does the user log in again?', 'Q12. Type of identifier SKP receives (fixed per account? includes email?)', 'Q13. Can SKP tell whether the user holds a credential from login alone? (currently only through verification)'] },
+  'S-02': { name: 'Required consent (first time only)', who: 'SKP', where: 'SKP page',
+    proc: ['Required consent after login and before verification (first time only)', 'Consent history stored (by AIR identifier)', '[Agree] → AIR SDK verification request'],
+    data: [['SKP internal', 'Consent items · version · time']],
+    ask: ['Q14. Does the SDK verification screen have its own approval (Allow) step? If it overlaps with SKP consent, how can they be merged?', 'Q15. Input for the cross-border transfer review: location and operator of the AIR Identity · Wallet · verification servers, and data exchanged between SKP and AIR'] },
+  'S-VERIFY': { name: 'Credential verification', who: 'MOCA (AIR SDK) → SKP', where: 'SDK screen over the SKP page',
+    proc: ['Verified against the SKP Verification Program (issuer = AirAsia, tier, valid · not revoked, holder match)', 'Highest tier applies when several credentials are held', 'SKP server re-checks the result, then fixes participation and tier (verification success = participation confirmed)', 'On failure: reason-specific guidance screen (S-02E)'],
+    data: [['AIR SDK → SKP', 'Verification result (success / failure code), tier'], ['Not shared', 'Full credential, name, member number, flight history']],
+    ask: ['Q16. What SKP receives as the result: success only, or the tier value as well?', 'Q17. How SKP can confirm the result server-side (verification API · webhook · signed result) — key to preventing fraudulent claims', 'Q18. Failure code breakdown (not held / expired / revoked / holder mismatch / system error)', 'Q19. With several credentials, does the SDK or SKP pick the highest tier?', 'Q20. Verification session · fee policy (for the Phase 1 PoC)'] },
+  'S-02E': { name: 'Verification failed (no credential)', who: 'SKP', where: 'SKP page',
+    proc: ['Message and buttons vary by SDK failure code', 'Not held: go to the AirAsia credential page (A-01)', 'Expired: check for a valid credential / holder mismatch: log in with the same account / system error: retry'],
+    data: [['SKP internal', 'Failure time · code']],
+    ask: ['Q18. Failure code breakdown (same as above)', 'Q21. Can credential creation be done directly on the SKP page via the SDK (without going to A-01)?'] },
+  'S-03': { name: 'Verification result · tier confirmed', who: 'SKP', where: 'SKP page',
+    proc: ['Shows only the values received from SDK verification', 'Records participation and the applied tier (later tier changes are not reflected)'],
+    data: [['SKP internal', 'AIR identifier, result · time, applied tier, participation status']],
+    ask: ['Q16. Does the SDK provide display attributes (creation date, validity, etc.) to SKP?'] },
+  'S-03P': { name: 'Get benefit package', who: 'SKP', where: 'SKP page',
+    proc: ['[Get my package] → confirmation sheet (SKP screen): contents · value · one time only', '[Get package] → SKP server checks participation · prior claim · remaining stock per benefit', 'Pre-purchased vouchers are assigned as one package (nothing is issued if any is short)', 'On success: stock deducted and Claimed recorded → moves to S-04 benefit details', 'No MOCA / AIR SDK involvement'],
+    data: [['SKP internal', 'Package code, assigned vouchers, issue time · status']], ask: [] },
+  'S-04': { name: 'Benefit details · in-store use', who: 'SKP · partner stores', where: 'SKP page → store',
+    proc: ['Opens right after the package is issued (or via View voucher in My package)', 'Switch between vouchers by tab: code · barcode · validity · where · how to use', 'Show the barcode in store → the partner processes redemption (existing settlement)', 'Usage · balance: shown when available via partner API (with lookup time; hidden if unavailable)'],
+    data: [['SKP → customer', 'Voucher code · barcode (only when logged in)'], ['Partner → SKP', 'Usage · balance (if the lookup API is supported)']], ask: [] }
+};
+let LANG = 'ko';
+try { LANG = new URLSearchParams(location.search).get('lang') || localStorage.getItem('flow-lang') || 'ko'; } catch (e) {}
+if (!UI[LANG]) LANG = 'ko';
+const t = k => UI[LANG][k];
+const L = s => LANG === 'en' ? { ...s.panel, ...EN[s.id] } : { ...s.panel, name: s.name };   // 현재 언어의 화면명·설명
+const ownLabel = own => t('own_' + own);
+function setLang(lang) {
+  LANG = lang;
+  try { localStorage.setItem('flow-lang', lang); const u = new URL(location.href); lang === 'en' ? u.searchParams.set('lang', 'en') : u.searchParams.delete('lang'); history.replaceState(null, '', u); } catch (e) {}
+  document.documentElement.lang = lang;
+  $$('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
+  $$('[data-lang]').forEach(b => b.setAttribute('aria-pressed', b.dataset.lang === lang));
+  renderMap(); show(cur);
+  if (!$('#modal').hidden) renderSummary();
+}
 
 /* ===== 렌더 ===== */
 let cur = 0;
@@ -643,8 +731,8 @@ function show(id) {
   cur = next;
   const s = STEPS[cur], o = OWN[s.own];
   $('#owner').style.setProperty('--c', o.c);
-  $('#owner').innerHTML = `<span>${o.label}${s.host ? ` <small>· ${s.host === 'aa' ? 'AirAsia' : 'SKP'} 페이지 위에 표시</small>` : ''}</span><small>${s.id}</small>`;
-  $('#addr').innerHTML = `<svg class="i lock"><use href="#i-lock"/></svg><b>${s.url}</b>${s.own === 'aa' ? '<span class="fine">(예시)</span>' : ''}`;
+  $('#owner').innerHTML = `<span>${ownLabel(s.own)}${s.host ? ` <small>· ${t('over_' + s.host)}</small>` : ''}</span><small>${s.id}</small>`;
+  $('#addr').innerHTML = `<svg class="i lock"><use href="#i-lock"/></svg><b>${s.url}</b>${s.host === 'aa' || s.own === 'aa' ? `<span class="fine">${t('ex')}</span>` : ''}`;
   $('#page').innerHTML = s.screen();
   $('#page').scrollTop = 0;
   renderOverlay();
@@ -658,29 +746,29 @@ function show(id) {
 }
 function renderOverlay() { const s = STEPS[cur]; $('#overlay').innerHTML = s.overlay ? s.overlay() : ''; }
 function renderInfo(s) {
-  const p = s.panel, o = OWN[s.own];
+  const p = L(s);
   $('#info').innerHTML = `
-    <span class="tag tag--${s.own}">${o.label}</span>
-    <h1 style="margin-top:8px"><span class="sid">${s.id}</span>${s.name}</h1>
-    <dl class="meta"><dt>Phase</dt><dd>${PH[s.phase]}</dd><dt>주체</dt><dd>${p.who}</dd><dt>화면 위치</dt><dd>${p.where}</dd><dt>URL</dt><dd><code>${s.url}</code>${s.own === 'aa' ? ' (예시)' : ''}</dd></dl>
-    <h3><svg class="i"><use href="#i-gear"/></svg>처리 내용</h3><ol>${p.proc.map(x => `<li>${x}</li>`).join('')}</ol>
-    <h3><svg class="i"><use href="#i-data"/></svg>주고받는 데이터</h3>
-    ${p.data.length ? `<table><tr><th>방향</th><th>항목</th></tr>${p.data.map(([a, b]) => `<tr><td>${a}</td><td>${b}</td></tr>`).join('')}</table>` : '<p class="none">없음</p>'}
-    <h3><svg class="i"><use href="#i-q"/></svg>MOCA 확인 필요</h3>
-    ${p.ask.length ? `<div class="ask"><ul>${p.ask.map(x => `<li>${x.replace(/^(Q\d+\.)/, '<b>$1</b>')}</li>`).join('')}</ul></div>` : '<p class="none">없음 (SKP 내부 처리)</p>'}`;
+    <span class="tag tag--${s.own}">${ownLabel(s.own)}</span>
+    <h1 style="margin-top:8px"><span class="sid">${s.id}</span>${p.name}</h1>
+    <dl class="meta"><dt>Phase</dt><dd>${t('ph')[s.phase]}</dd><dt>${t('who')}</dt><dd>${p.who}</dd><dt>${t('where')}</dt><dd>${p.where}</dd><dt>URL</dt><dd><code>${s.url}</code>${s.host === 'aa' || s.own === 'aa' ? ' ' + t('ex') : ''}</dd></dl>
+    <h3><svg class="i"><use href="#i-gear"/></svg>${t('proc')}</h3><ol>${p.proc.map(x => `<li>${x}</li>`).join('')}</ol>
+    <h3><svg class="i"><use href="#i-data"/></svg>${t('data')}</h3>
+    ${p.data.length ? `<table><tr><th>${t('dir')}</th><th>${t('item')}</th></tr>${p.data.map(([a, b]) => `<tr><td>${a}</td><td>${b}</td></tr>`).join('')}</table>` : `<p class="none">${t('none')}</p>`}
+    <h3><svg class="i"><use href="#i-q"/></svg>${t('ask')}</h3>
+    ${p.ask.length ? `<div class="ask"><ul>${p.ask.map(x => `<li>${x.replace(/^(Q\d+\.)/, '<b>$1</b>')}</li>`).join('')}</ul></div>` : `<p class="none">${t('ask_none')}</p>`}`;
 }
 function renderMap() {
   let html = '', ph = 0;
   STEPS.forEach((s, i) => {
-    if (s.phase !== ph) { if (ph) html += '</ol>'; ph = s.phase; html += `<div class="phase">${PH[ph]}</div><ol class="map">`; }
-    html += `<li><button type="button" data-goto="${s.id}" style="--c:${OWN[s.own].c}"><span class="n">${i + 1}</span><span class="t">${s.name}${s.branch ? ' <small>분기</small>' : ''}<small>${s.id} · ${OWN[s.own].label}</small></span></button></li>`;
+    if (s.phase !== ph) { if (ph) html += '</ol>'; ph = s.phase; html += `<div class="phase">${t('ph')[ph]}</div><ol class="map">`; }
+    html += `<li><button type="button" data-goto="${s.id}" style="--c:${OWN[s.own].c}"><span class="n">${i + 1}</span><span class="t">${L(s).name}${s.branch ? ` <small>${t('branch')}</small>` : ''}<small>${s.id} · ${ownLabel(s.own)}</small></span></button></li>`;
   });
   $('#map').innerHTML = html + '</ol>';
 }
 function renderSummary() {
-  $('#sum-table').innerHTML = `<tr><th>#</th><th>화면</th><th>영역</th><th>처리 내용</th><th>주고받는 데이터</th><th>MOCA 확인</th></tr>` +
-    STEPS.map((s, i) => `<tr data-go="${s.id}"><td>${i + 1}</td><td><b>${s.id}</b><br>${s.name}</td><td><span class="tag tag--${s.own}">${OWN[s.own].label}</span></td>
-      <td>${s.panel.proc.join('<br>')}</td><td>${s.panel.data.map(([a, b]) => `${a}: ${b}`).join('<br>') || '-'}</td><td>${s.panel.ask.map(x => x.split('.')[0]).join(', ') || '-'}</td></tr>`).join('');
+  $('#sum-table').innerHTML = `<tr>${t('th').map(h => `<th>${h}</th>`).join('')}</tr>` +
+    STEPS.map((s, i) => { const p = L(s); return `<tr data-go="${s.id}"><td>${i + 1}</td><td><b>${s.id}</b><br>${p.name}</td><td><span class="tag tag--${s.own}">${ownLabel(s.own)}</span></td>
+      <td>${p.proc.join('<br>')}</td><td>${p.data.map(([a, b]) => `${a}: ${b}`).join('<br>') || '-'}</td><td>${p.ask.map(x => x.split('.')[0]).join(', ') || '-'}</td></tr>`; }).join('');
 }
 
 const $ = (q, el = document) => el.querySelector(q), $$ = (q, el = document) => [...el.querySelectorAll(q)];
@@ -738,7 +826,8 @@ document.addEventListener('keydown', e => {
   if (e.key === 'ArrowLeft') $('#prev').click();
 });
 
-renderMap();
+$$('[data-lang]').forEach(b => b.addEventListener('click', () => setLang(b.dataset.lang)));
+setLang(LANG);   // 언어 적용 + 지도·첫 화면 렌더 (?lang=en 으로 영어 링크 공유 가능)
 show(0);
 </script>
 </body>
