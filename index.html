@@ -230,6 +230,15 @@
   .inq { display: grid; gap: 6px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; font-size: 12.5px; }
   .inq__top { display: flex; justify-content: space-between; gap: 8px; color: var(--ink-3); font-weight: 600; font-size: 11.5px; }
   .inq__reply { padding: 10px; border-radius: 8px; background: var(--soft); color: var(--ink-2); } .inq__reply b { display: block; color: var(--ink); font-size: 11.5px; }
+  .fld input { width: 100%; padding: 10px 12px; border: 1.5px solid var(--line); border-radius: 10px; font: 400 14px var(--font); color: var(--ink); }
+  .inq-consent { border: 1.5px solid var(--line); border-radius: 12px; padding: 10px 12px; font-size: 12.5px; }
+  .inq-consent label { display: flex; gap: 8px; align-items: flex-start; cursor: pointer; }
+  .inq-consent input { width: 18px; height: 18px; margin: 1px 0 0; accent-color: var(--ink); flex: none; }
+  .inq-consent summary { margin-top: 8px; font-size: 11.5px; color: var(--ink-3); cursor: pointer; text-decoration: underline; }
+  .inq-consent table { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 11.5px; }
+  .inq-consent th, .inq-consent td { border: 1px solid var(--line); padding: 5px 7px; text-align: left; vertical-align: top; }
+  .inq-consent th { width: 30%; background: var(--soft); }
+  .inq-consent p { margin: 6px 0 0; font-size: 11.5px; color: var(--ink-2); }
   .st { padding: 1px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; white-space: nowrap; }
   .st--received { background: var(--soft); color: var(--ink-2); } .st--answered { background: var(--ok-soft); color: var(--ok); }
   .ticket--btn { width: 100%; padding: 0; border: 0; text-align: left; font: inherit; cursor: pointer; }
@@ -361,19 +370,30 @@ const ST = { received: ['Received', 'st--received'], answered: ['Answered', 'st-
 const helpSheet = () => {
   const head = (title) => `<div style="display:flex;justify-content:space-between;align-items:center"><span class="eyebrow">Help</span><button type="button" class="btn btn--line" style="width:auto;min-height:32px;padding:0 12px" data-help-close>Close</button></div><p class="sdk__t">${title}</p>`;
   if (!S.loggedIn) return `${head('Log in to contact us')}
-    <p class="lead" style="font-size:13px">We use your AIR login to find your promotion history, so you don't need to share contact details.</p>
+    <p class="lead" style="font-size:13px">We use your AIR login to find your promotion history.</p>
     <button type="button" class="btn btn--skp" data-help-login>Log in with AIR</button>`;
   if (S.help === 'form') return `${head('How can we help?')}
-    <p class="lead" style="font-size:13px">Choose a topic and tell us what happened. Your membership and benefit history are linked automatically. No email or phone number needed.</p>
+    <p class="lead" style="font-size:13px">Choose a topic and tell us what happened. Your membership and benefit history are linked automatically.</p>
     ${S.inq.length ? `<button type="button" class="s01-myv" style="margin:0;text-align:left;padding:0" data-help-home><b>View my inquiries (${S.inq.length}) →</b></button>` : ''}
     <label class="fld"><span>Topic</span><select id="inq-topic">${TOPICS.map(x => `<option>${x}</option>`).join('')}</select></label>
     <label class="fld"><span>What can we help with?</span><textarea id="inq-text" maxlength="1000" placeholder="Tell us what happened and which step you were on."></textarea><small id="inq-count">0 / 1,000</small></label>
-    <div class="alert alert--danger" style="background:var(--warn-soft);color:#5c3b00">Please don't enter your name, email, phone number, passport details or other sensitive information.</div>
+    <div class="alert alert--danger" style="background:var(--warn-soft);color:#5c3b00">Please don't include your name, phone number, passport details or other sensitive information in your message.</div>
+    <label class="fld"><span>Reply email</span><input type="email" id="inq-email" placeholder="name@example.com" autocomplete="email"><small>We'll send our reply to this email and post it in My inquiries.</small></label>
+    <div class="inq-consent">
+      <label><input type="checkbox" id="inq-agree"> <span><span style="color:var(--skp);font-weight:700">[Required]</span> I agree to the collection and use of my email to answer this inquiry.</span></label>
+      <details><summary>View details</summary>
+        <table><tr><th>Controller</th><td>SK planet Co., Ltd.</td></tr><tr><th>Item</th><td>Email address</td></tr><tr><th>Purpose</th><td>Replying to this inquiry</td></tr>
+          <tr><th>Retention</th><td>Until N months after the inquiry is closed, then destroyed <span style="color:var(--warn)">(TBD · legal review)</span></td></tr></table>
+        <p>You may refuse, but we won't be able to receive your inquiry, as we need your email to reply.</p>
+      </details>
+    </div>
     <div style="display:grid;grid-template-columns:1fr 2fr;gap:8px"><button type="button" class="btn btn--line" data-help-close>Cancel</button><button type="button" class="btn btn--skp" data-help-send disabled>Send</button></div>`;
   return `${head('My inquiries')}
-    <p class="lead" style="font-size:13px">Replies are posted here.</p>
+    <p class="lead" style="font-size:13px">Replies are sent to your email and posted here.</p>
     ${S.inq.length ? S.inq.slice().reverse().map(q => `<div class="inq"><div class="inq__top"><span>${q.topic} · ${q.date}</span><span class="st ${ST[q.status][1]}">${ST[q.status][0]}</span></div>
-        <div class="inq__text">${q.text.replace(/</g, '&lt;')}</div>${q.reply ? `<div class="inq__reply"><b>Reply from OK Cashbag</b>${q.reply}</div>` : '<p class="fine">We\'ll post our reply here.</p>'}</div>`).join('')
+        <div class="inq__text">${q.text.replace(/</g, '&lt;')}</div>
+        <p class="fine">Reply to: ${q.email.replace(/^(.).*(@.*)$/, '$1***$2').replace(/</g, '&lt;')}</p>
+        ${q.reply ? `<div class="inq__reply"><b>Reply from OK Cashbag · also sent by email</b>${q.reply}</div>` : '<p class="fine">We\'ll reply by email and post it here.</p>'}</div>`).join('')
       : '<p class="fine" style="text-align:center;padding:14px;border:1.5px dashed var(--line);border-radius:12px">Your inquiries and replies will appear here.</p>'}
     <button type="button" class="btn btn--line" data-help-new>New inquiry</button>`;
 };
@@ -689,8 +709,8 @@ const STEPS = [
   { id: 'S-05', phase: 4, own: 'skp', name: '고객 문의 (Help)', url: URL_SKP, common: true,
     screen: pageS01,                                             // 문의 시트는 어느 SKP 화면 위에서든 열림 (여기서는 메인 위)
     panel: { who: 'SKP (고객센터 · Admin)', where: '모든 SKP 화면 상단 ? 아이콘 → 바텀시트',
-      proc: ['상단 바 ? 아이콘 → 바로 문의 입력 시트 (로그인 전이면 로그인 안내)', '로그인 상태에서만 등록, AIR 식별자로 참여·검증·지급 이력 자동 연결', '문의 유형 + 내용만 입력 (이메일·전화번호·이름 미수집, 개인정보 입력 금지 안내)', '등록 후 내 문의 목록으로 전환, 답변 확인 (Received → Answered). 입력 시트의 View my inquiries 링크로도 이동'],
-      data: [['고객 → SKP', '문의 유형·내용 (+ AIR 식별자 자동 연결)'], ['SKP Admin → 고객', '답변']],
+      proc: ['상단 바 ? 아이콘 → 바로 문의 입력 시트 (로그인 전이면 로그인 안내)', '로그인 상태에서만 등록, AIR 식별자로 참여·검증·지급 이력 자동 연결', '문의 유형 + 내용 + 답변 받을 이메일 입력 (본문에 개인정보 입력 금지 안내)', '[필수] 문의 답변용 이메일 수집·이용 동의를 문의 시점에 별도로 받음 (AirAsia 경로 가입자는 SKP 동의 이력이 없으므로)', '등록 후 내 문의 목록으로 전환. 답변은 이메일 발송 + 목록에도 표시 (Received → Answered)'],
+      data: [['고객 → SKP', '문의 유형·내용, 답변용 이메일 (+ AIR 식별자 자동 연결)'], ['SKP Admin → 고객', '답변 (이메일 + 서비스 내)']],
       ask: [] } }
 ];
 const IDX = Object.fromEntries(STEPS.map((s, i) => [s.id, i]));
@@ -766,8 +786,8 @@ const EN = {
     proc: ['Opens right after the package is issued (or via View voucher in My package)', 'Vouchers in the package are listed as cards, same as screen 11', 'Tap a voucher to open its own detail sheet: code · barcode · validity · where · how to use', 'Show the barcode in store → the partner processes redemption (existing settlement)', 'Usage · balance: shown when available via partner API (with lookup time; hidden if unavailable)'],
     data: [['SKP → customer', 'Voucher code · barcode (only when logged in)'], ['Partner → SKP', 'Usage · balance (if the lookup API is supported)']], ask: [] },
   'S-05': { name: 'Customer inquiry (Help)', who: 'SKP (customer service · Admin)', where: '? icon in the top bar of every SKP screen → bottom sheet',
-    proc: ['? icon in the top bar → opens the inquiry form directly (asks to log in first if not logged in)', 'Only logged-in users can submit; participation · verification · issuance history is linked by AIR identifier', 'Only topic + message are entered (no email · phone · name; users are told not to enter personal data)', 'After sending, the sheet switches to My inquiries with replies (Received → Answered); also reachable via View my inquiries in the form'],
-    data: [['Customer → SKP', 'Topic · message (+ AIR identifier linked automatically)'], ['SKP Admin → customer', 'Reply']], ask: [] }
+    proc: ['? icon in the top bar → opens the inquiry form directly (asks to log in first if not logged in)', 'Only logged-in users can submit; participation · verification · issuance history is linked by AIR identifier', 'Topic + message + reply email are entered (users are told not to put personal data in the message)', '[Required] consent to collect and use the email for the reply is taken separately at inquiry time (members who joined via AirAsia have no SKP consent on file)', 'After sending, the sheet switches to My inquiries. Replies are emailed and also shown in the list (Received → Answered)'],
+    data: [['Customer → SKP', 'Topic · message, reply email (+ AIR identifier linked automatically)'], ['SKP Admin → customer', 'Reply (email + in-service)']], ask: [] }
 };
 let LANG = 'ko';
 try { LANG = new URLSearchParams(location.search).get('lang') || localStorage.getItem('flow-lang') || 'ko'; } catch (e) {}
@@ -858,7 +878,7 @@ document.addEventListener('click', e => {
   if (el.hasAttribute('data-help-new')) { S.help = 'form'; return renderOverlay(); }
   if (el.hasAttribute('data-help-home')) { S.help = 'home'; return renderOverlay(); }
   if (el.hasAttribute('data-help-send')) {
-    S.inq.push({ topic: $('#inq-topic').value, text: $('#inq-text').value.trim(), date: today(), status: 'received' });
+    S.inq.push({ topic: $('#inq-topic').value, text: $('#inq-text').value.trim(), email: $('#inq-email').value.trim(), date: today(), status: 'received' });
     S.help = 'home'; return renderOverlay();
   }
   if (el.hasAttribute('data-help-login')) { S.help = null; S.afterLogin = 'help'; return show('S-LOGIN'); }
@@ -907,12 +927,15 @@ document.addEventListener('keydown', e => {
   if (e.key === 'ArrowLeft') $('#prev').click();
 });
 
-// 문의 입력: 글자 수 표시, 내용이 있어야 Send 활성
-document.addEventListener('input', e => {
-  if (e.target.id !== 'inq-text') return;
-  $('#inq-count').textContent = `${e.target.value.length.toLocaleString('en-US')} / 1,000`;
-  $('[data-help-send]').disabled = !e.target.value.trim();
-});
+// 문의 입력: 글자 수 표시, 내용 + 이메일 형식 + 이메일 수집 동의가 모두 있어야 Send 활성
+const syncInquiry = e => {
+  if (!['inq-text', 'inq-email', 'inq-agree'].includes(e.target.id)) return;
+  const text = $('#inq-text').value, email = $('#inq-email').value.trim();
+  $('#inq-count').textContent = `${text.length.toLocaleString('en-US')} / 1,000`;
+  $('[data-help-send]').disabled = !(text.trim() && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && $('#inq-agree').checked);
+};
+document.addEventListener('input', syncInquiry);
+document.addEventListener('change', syncInquiry);
 // Admin 시뮬레이션: 가장 최근 미답변 문의에 답변 등록
 $('#op-answer').addEventListener('click', () => {
   const q = S.inq.slice().reverse().find(x => x.status !== 'answered');
