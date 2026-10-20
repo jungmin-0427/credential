@@ -1,0 +1,743 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">  <!-- 검색 노출 차단 (협의용 비공개 프로토타입) -->
+<title>AIR Credential End-to-End Flow</title>
+<!--
+  ==================== 안내 ====================
+  · 목적: MOCA와 전체 플로우(AirAsia 발급 → SKP 검증 → 혜택 지급·사용) 싱크용 프로토타입
+  · 기준: 정책서 v0.2 · 스토리보드 v0.6 · 캠페인 프로토타입 v0.2 · 팀 프로토타입(air-credential-prototype.vercel.app)
+  · 화면 1개 = 아래 <script>의 STEPS 배열 항목 1개. 화면 문구(screen), 처리·데이터·확인 사항(panel)을 함께 관리한다.
+  · 라벨: AirAsia 페이지 / AIR SDK 화면(MOCA 제공) / SKP 페이지. SDK 화면은 호스트 페이지 위 바텀시트로 표시한다.
+  · SDK 메서드명·화면 구성은 가정이다. 실제 사양은 MOCA 확인(Q 번호) 후 반영한다.
+  ==============================================
+-->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+  :root {
+    --ink: #141B34; --ink-2: #4A5372; --ink-3: #8790AB; --line: #E3E7F0; --soft: #F5F7FB; --bg: #EEF1F6;
+    --aa: #D7192A; --aa-soft: #FDE8EA;     /* AirAsia 영역 */
+    --sdk: #5B3CC4; --sdk-soft: #EFEAFF;   /* AIR SDK (MOCA) 영역 */
+    --skp: #E8461F; --skp-soft: #FFEDE7;   /* SKP 영역 */
+    --ok: #1F9D6B; --ok-soft: #E4F6EE; --warn: #9A5B00; --warn-soft: #FFF4E0;
+    --oy: #7DB72F; --gs: #2F7BEF; --kfv: #E07A3F;
+    --font: "Pretendard", "Malgun Gothic", "Apple SD Gothic Neo", system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { margin: 0; }
+  body { font: 14px/1.55 var(--font); color: var(--ink); background: var(--bg); word-break: keep-all; -webkit-font-smoothing: antialiased; }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  :focus-visible { outline: 3px solid #6A8BFF; outline-offset: 2px; }
+  svg.i { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+  /* ---------- 상단 바 ---------- */
+  .top { position: sticky; top: 0; z-index: 20; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; padding: 12px 20px; background: var(--ink); color: #fff; }
+  .top strong { font-size: 15px; margin-right: auto; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px; font-size: 12px; }
+  .tag { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border-radius: 999px; font-size: 11.5px; font-weight: 700; white-space: nowrap; }
+  .tag::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  .tag--aa { background: var(--aa-soft); color: var(--aa); }
+  .tag--sdk { background: var(--sdk-soft); color: var(--sdk); }
+  .tag--skp { background: var(--skp-soft); color: var(--skp); }
+  .top button { padding: 6px 12px; border: 1px solid #4A5372; border-radius: 6px; background: transparent; color: #fff; font-size: 12.5px; }
+  .top button:hover { background: #26304d; }
+
+  /* ---------- 3단 레이아웃 ---------- */
+  .layout { display: grid; grid-template-columns: 260px 400px minmax(0, 1fr); gap: 24px; max-width: 1400px; margin: 0 auto; padding: 20px; align-items: start; }
+  .col { position: sticky; top: 72px; max-height: calc(100vh - 92px); overflow: auto; }
+  .box { background: #fff; border-radius: 14px; padding: 16px; box-shadow: 0 1px 3px rgba(20,27,52,.08); }
+  .box + .box { margin-top: 12px; }
+  .box h2 { margin: 0 0 10px; font-size: 13px; color: var(--ink-3); letter-spacing: .02em; }
+
+  /* 여정 지도 */
+  .phase { margin: 12px 0 4px; font-size: 11.5px; font-weight: 800; color: var(--ink-2); }
+  .phase:first-of-type { margin-top: 0; }
+  .map { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+  .map button { width: 100%; display: grid; grid-template-columns: 26px 1fr; gap: 8px; align-items: center; padding: 6px 8px; border: 0; border-radius: 8px; background: none; text-align: left; }
+  .map button:hover { background: var(--soft); }
+  .map button[aria-current="true"] { background: var(--ink); color: #fff; }
+  .map .n { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; font-size: 11px; font-weight: 800; color: #fff; background: var(--c); }
+  .map .t { font-size: 12.5px; line-height: 1.3; }
+  .map .t small { display: block; font-size: 10.5px; opacity: .7; }
+  .scn label { display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 12.5px; }
+  .scn select { width: 100%; padding: 6px; border: 1px solid var(--line); border-radius: 8px; font: inherit; }
+
+  /* ---------- 폰 ---------- */
+  .stage { position: sticky; top: 72px; }
+  .owner { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; padding: 8px 12px; border-radius: 10px; font-size: 12.5px; font-weight: 700; color: #fff; background: var(--c); }
+  .owner small { font-weight: 600; opacity: .85; }
+  .phone { position: relative; height: min(760px, calc(100vh - 190px)); min-height: 560px; border-radius: 34px; overflow: hidden; background: #fff; box-shadow: 0 0 0 9px #161A26, 0 10px 30px rgba(20,27,52,.18); display: flex; flex-direction: column; }
+  .addr { flex: none; display: flex; align-items: center; gap: 6px; margin: 10px 12px 6px; padding: 7px 12px; border-radius: 10px; background: var(--soft); font-size: 11.5px; color: var(--ink-2); }
+  .addr b { color: var(--ink); font-weight: 600; }
+  .addr .lock { color: var(--ok); }
+  .page { flex: 1; overflow: auto; position: relative; }
+  .nav { display: flex; gap: 8px; margin-top: 12px; }
+  .nav button { flex: 1; padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: #fff; font-weight: 700; }
+  .nav button:disabled { opacity: .4; cursor: default; }
+  .nav .pos { flex: none; align-self: center; font-size: 12px; color: var(--ink-3); min-width: 54px; text-align: center; }
+
+  /* 페이지 공통 */
+  .p { padding: 20px; display: grid; gap: 14px; }
+  .hd { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; }
+  .hd--aa { background: var(--aa); color: #fff; }
+  .hd--skp { background: #fff; border-bottom: 1px solid var(--line); }
+  .wm-aa { font-weight: 900; font-size: 20px; letter-spacing: -.04em; font-style: italic; }
+  .wm-skp { display: flex; align-items: center; gap: 6px; font-weight: 800; }
+  .wm-skp i { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 7px; background: var(--skp); color: #fff; font-style: normal; font-size: 11px; }
+  .eyebrow { font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--c, var(--skp)); }
+  .h1 { margin: 0; font-size: 28px; line-height: 1.18; letter-spacing: -.02em; font-weight: 800; }
+  .h2 { margin: 0; font-size: 20px; line-height: 1.3; font-weight: 800; letter-spacing: -.01em; }
+  .lead { margin: 0; font-size: 14px; color: var(--ink-2); line-height: 1.55; }
+  .fine { margin: 0; font-size: 11.5px; color: var(--ink-3); line-height: 1.5; }
+  .btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 50px; padding: 0 16px; border: 0; border-radius: 12px; font-weight: 700; font-size: 15px; }
+  .btn--aa { background: var(--aa); color: #fff; }
+  .btn--skp { background: var(--skp); color: #fff; }
+  .btn--dark { background: var(--ink); color: #fff; }
+  .btn--line { background: #fff; box-shadow: inset 0 0 0 1.5px var(--line); }
+  .btn:disabled { background: #D5D9E3; color: #fff; cursor: not-allowed; }
+  .card { padding: 14px 16px; border-radius: 14px; background: var(--soft); }
+  .steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; counter-reset: s; }
+  .steps li { counter-increment: s; display: flex; gap: 10px; align-items: flex-start; font-size: 13px; }
+  .steps li::before { content: counter(s); display: grid; place-items: center; flex: none; width: 22px; height: 22px; border-radius: 50%; background: var(--c, var(--skp)); color: #fff; font-size: 11px; font-weight: 800; }
+  .steps li b { display: block; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { padding: 4px 10px; border-radius: 999px; background: #fff; border: 1px solid var(--line); font-size: 11.5px; font-weight: 700; }
+  .kv { margin: 0; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .kv div { display: flex; justify-content: space-between; gap: 10px; padding: 9px 12px; font-size: 12.5px; }
+  .kv div + div { border-top: 1px solid var(--line); }
+  .kv dt { color: var(--ink-3); } .kv dd { margin: 0; font-weight: 700; text-align: right; }
+  .alert { display: flex; gap: 8px; padding: 10px 12px; border-radius: 10px; font-size: 12.5px; line-height: 1.45; background: var(--skp-soft); color: var(--ink-2); }
+  .alert--danger { background: #FDECEC; color: #9B1C20; }
+
+  /* Credential 카드 */
+  .vc { position: relative; aspect-ratio: 1.6; border-radius: 16px; padding: 16px; color: var(--fg); background: var(--bgc); display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 10px 24px rgba(20,27,52,.2); }
+  .vc::after { content: ""; position: absolute; right: -30%; bottom: -55%; width: 75%; aspect-ratio: 1; border-radius: 50%; border: 1px solid currentColor; opacity: .18; }
+  .vc__top { display: flex; justify-content: space-between; align-items: center; }
+  .vc__logo { font: italic 800 24px/1 Georgia, serif; }
+  .vc__st { padding: 3px 10px; border-radius: 999px; background: var(--ok); color: #fff; font-size: 11px; font-weight: 700; }
+  .vc__ey { margin-top: auto; font-size: 9.5px; font-weight: 800; letter-spacing: .12em; opacity: .75; }
+  .vc__t { margin: 3px 0 6px; font-size: 18px; font-weight: 600; }
+  .vc__m { font-size: 9px; font-weight: 700; letter-spacing: .14em; opacity: .7; line-height: 1.8; }
+  [data-tier="black"]    { --bgc: linear-gradient(135deg, #34343C, #0D0D12 70%); --fg: #fff; }
+  [data-tier="platinum"] { --bgc: linear-gradient(135deg, #F3F5F8, #AEB7C2 85%); --fg: #1E2533; }
+  [data-tier="gold"]     { --bgc: linear-gradient(135deg, #FBE3A0, #D7A53A 85%); --fg: #3A2800; }
+  [data-tier="red"]      { --bgc: linear-gradient(135deg, #FF6B6E, #D11A2A 85%); --fg: #fff; }
+
+  /* 티켓 */
+  .tickets { display: grid; gap: 8px; }
+  .ticket { display: grid; grid-template-columns: 70px 1fr; min-height: 76px; border-radius: 12px; background: #fff; box-shadow: 0 1px 3px rgba(20,27,52,.1); overflow: hidden; }
+  .ticket__stub { display: grid; place-items: center; background: var(--brand); color: #fff; font-size: 10px; font-weight: 800; letter-spacing: .04em; }
+  .ticket__body { padding: 10px 12px; border-left: 2px dashed var(--line); display: grid; align-content: center; }
+  .ticket__body small { font-size: 11px; color: var(--ink-3); font-weight: 700; }
+  .ticket__body b { font-size: 18px; letter-spacing: -.02em; }
+  .ticket__body span { font-size: 12px; color: var(--ink-2); }
+  .ticket__body .open { justify-self: start; margin-top: 4px; padding: 3px 10px; border: 1px solid var(--line); border-radius: 999px; background: #fff; font-size: 11.5px; font-weight: 700; }
+  .pkg { display: grid; gap: 10px; padding: 14px; border-radius: 16px; background: var(--soft); }
+  .pkg__h { display: flex; justify-content: space-between; align-items: flex-start; }
+  .pkg__h b { font-size: 16px; } .pkg__h small { display: block; font-size: 11px; color: var(--ink-3); }
+  .pkg__tot { text-align: right; font-size: 10.5px; color: var(--ink-3); } .pkg__tot b { display: block; font-size: 19px; color: var(--ink); }
+  .done { display: flex; gap: 6px; align-items: center; padding: 8px 12px; border-radius: 10px; background: var(--ok-soft); color: var(--ok); font-weight: 700; font-size: 13px; }
+
+  /* 동의 */
+  .consent { border: 1.5px solid var(--line); border-radius: 14px; overflow: hidden; }
+  .consent label { display: flex; align-items: center; gap: 10px; padding: 10px 12px; font-size: 12.5px; cursor: pointer; }
+  .consent label + label { border-top: 1px solid var(--line); }
+  .consent label:first-child { background: var(--soft); font-weight: 800; font-size: 14px; }
+  .consent input { width: 20px; height: 20px; margin: 0; accent-color: var(--ink); flex: none; }
+  .consent .req { color: var(--skp); font-weight: 700; }
+  .consent .xb { color: var(--warn); }
+
+  /* SDK 바텀시트 */
+  .dim { position: absolute; inset: 0; background: rgba(20,27,52,.5); z-index: 5; }
+  .host { pointer-events: none; }
+  .sdk { position: absolute; left: 0; right: 0; bottom: 0; z-index: 6; padding: 20px 20px 14px; border-radius: 22px 22px 0 0; background: #fff; display: grid; gap: 12px; box-shadow: 0 -8px 30px rgba(0,0,0,.2); }
+  .sdk::before { content: ""; justify-self: center; width: 40px; height: 4px; border-radius: 2px; background: var(--line); margin-top: -8px; }
+  .sdk__app { display: flex; align-items: center; gap: 10px; }
+  .sdk__app i { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; color: #fff; font-style: normal; font-weight: 900; font-size: 13px; background: var(--c); }
+  .sdk__app b { display: block; font-size: 14px; } .sdk__app small { font-size: 11.5px; color: var(--ink-3); }
+  .sdk__t { margin: 0; font-size: 18px; font-weight: 800; letter-spacing: -.01em; }
+  .sdk__row { display: flex; justify-content: space-between; align-items: center; padding: 10px 12px; border-radius: 10px; background: var(--soft); font-size: 13px; }
+  .sdk__row b { font-size: 14px; }
+  .sdk__pw { text-align: center; font-size: 11px; color: var(--ink-3); }
+  .sdk__pw b { color: var(--ink); font-style: italic; font-family: Georgia, serif; }
+  .sdk .btn--sdk { background: var(--ink); color: #fff; }
+  .spin { justify-self: center; width: 44px; height: 44px; border-radius: 50%; border: 5px solid var(--sdk-soft); border-top-color: var(--sdk); animation: spin 1s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .okmark { justify-self: center; display: grid; place-items: center; width: 52px; height: 52px; border-radius: 50%; background: var(--ok-soft); color: var(--ok); font-size: 26px; }
+
+  /* 바코드 */
+  .voucher { border-radius: 18px; overflow: hidden; box-shadow: 0 8px 24px rgba(20,27,52,.14); }
+  .voucher__h { padding: 16px; background: var(--brand); color: #fff; } .voucher__h b { display: block; font-size: 28px; }
+  .voucher__b { padding: 18px 16px; background: #fff; text-align: center; }
+  .bars { height: 70px; background: repeating-linear-gradient(90deg, var(--ink) 0 2px, transparent 2px 4px, var(--ink) 4px 5px, transparent 5px 8px, var(--ink) 8px 11px, transparent 11px 13px); }
+  .code { margin-top: 6px; font-weight: 700; letter-spacing: .14em; }
+
+  /* ---------- S-01 SKP 메인 (서울 테마) ---------- */
+  .s01-hero { padding: 22px 20px 34px; background: radial-gradient(120% 60% at 100% 0%, #FFE3D8 0%, transparent 60%), radial-gradient(90% 60% at 0% 30%, #DCE9FF 0%, transparent 65%), #E8F1FF; }
+  .s01-hero .h1 em { font-style: normal; color: var(--skp); }
+  .s01-visual { position: relative; margin: 18px 0 16px; }
+  .seoul { display: block; width: 100%; height: auto; }
+  .s01-visual .float { position: absolute; box-shadow: 0 2px 8px rgba(20,27,52,.12); animation: bob 3.2s ease-in-out infinite; }
+  .s01-visual .f1 { left: 8px; top: 10px; } .s01-visual .f2 { left: 34%; bottom: -10px; animation-delay: -1.2s; } .s01-visual .f3 { right: 8px; bottom: 26%; animation-delay: -2s; }
+  .sticker { position: absolute; right: 22px; top: -10px; padding: 8px 12px; border-radius: 12px; background: var(--skp); color: #fff; font-size: 11px; font-weight: 900; line-height: 1.15; text-align: center; transform: rotate(8deg); box-shadow: 0 4px 10px rgba(232,70,31,.3); }
+  @keyframes bob { 50% { transform: translateY(-5px); } }
+  @media (prefers-reduced-motion: reduce) { .s01-visual .float { animation: none; } }
+  .s01-period { margin: 12px 0 0; text-align: center; font-size: 12.5px; color: var(--ink-2); }
+  .s01-sec { padding: 36px 20px; }
+  .s01-head { display: grid; justify-items: center; gap: 6px; margin-bottom: 18px; text-align: center; }
+  .s01-num { padding: 3px 0; border-top: 1.5px solid var(--ink); border-bottom: 1.5px solid var(--ink); font-size: 11px; font-weight: 800; letter-spacing: .08em; }
+  .s01-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+  .s01-steps li { display: grid; grid-template-columns: 46px 1fr; gap: 12px; align-items: center; padding: 12px 14px; border-radius: 14px; background: #fff; box-shadow: 0 1px 4px rgba(20,27,52,.08); }
+  .s01-steps i { display: grid; place-items: center; width: 46px; height: 46px; border-radius: 12px; background: var(--skp-soft); font-style: normal; font-size: 20px; }
+  .s01-steps small { font-size: 10.5px; font-weight: 800; color: var(--skp); letter-spacing: .06em; }
+  .s01-steps b { display: block; font-size: 14.5px; } .s01-steps p { margin: 0; font-size: 12.5px; color: var(--ink-2); }
+  .s01-tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 4px; margin-bottom: 14px; border-radius: 999px; background: #fff; box-shadow: 0 1px 4px rgba(20,27,52,.08); }
+  .s01-tabs button { min-height: 36px; border: 0; border-radius: 999px; background: none; font-size: 12.5px; font-weight: 700; color: var(--ink-3); }
+  .s01-tabs button[aria-selected="true"] { background: var(--ink); color: #fff; }
+  .s01-brands { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .s01-brands > div { display: grid; justify-items: center; gap: 4px; padding: 14px 6px; border-radius: 14px; background: #fff; box-shadow: 0 1px 4px rgba(20,27,52,.08); text-align: center; }
+  .s01-brands i { display: grid; place-items: center; width: 46px; height: 46px; border-radius: 50%; background: var(--b); font-style: normal; font-size: 20px; }
+  .s01-brands b { font-size: 12.5px; line-height: 1.25; } .s01-brands span { font-size: 10.5px; color: var(--ink-3); }
+  .s01-faq { border-top: 1px solid var(--line); }
+  .s01-faq details { border-bottom: 1px solid var(--line); }
+  .s01-faq summary { padding: 13px 0; font-weight: 700; font-size: 14px; cursor: pointer; }
+  .s01-faq p { margin: 0 0 12px; padding: 12px; border-radius: 10px; background: var(--soft); font-size: 12.5px; color: var(--ink-2); }
+  .s01-notes ul { margin: 6px 0 0; padding-left: 16px; font-size: 11.5px; color: var(--ink-2); display: grid; gap: 4px; }
+  .s01-foot { padding: 20px 20px 90px; background: var(--ink); color: #9AA3BF; font-size: 11px; line-height: 1.6; }
+  .s01-foot b { color: #fff; }
+  .s01-dock { position: sticky; bottom: 0; padding: 10px 16px 14px; background: linear-gradient(to top, #fff 70%, rgba(255,255,255,0)); transition: transform .25s, opacity .25s; }
+  .s01-dock.is-hidden { transform: translateY(100%); opacity: 0; pointer-events: none; } /* 히어로 버튼이 보이면 숨김 */
+  .overlay { position: absolute; inset: 0; z-index: 8; pointer-events: none; }
+  .overlay:not(:empty) { pointer-events: auto; }
+  .sheet-skp { border-top: 3px solid var(--skp); }
+
+  /* ---------- 오른쪽 설명 패널 ---------- */
+  .info h1 { margin: 0; font-size: 20px; letter-spacing: -.01em; }
+  .info .sid { display: inline-block; margin-right: 8px; padding: 1px 8px; border-radius: 6px; background: var(--ink); color: #fff; font-size: 13px; vertical-align: 2px; }
+  .info .meta { display: grid; grid-template-columns: 96px 1fr; gap: 6px 12px; margin: 14px 0 0; font-size: 13px; }
+  .info .meta dt { color: var(--ink-3); font-weight: 600; } .info .meta dd { margin: 0; }
+  .info h3 { margin: 18px 0 8px; font-size: 13.5px; display: flex; align-items: center; gap: 6px; }
+  .info ol, .info ul { margin: 0; padding-left: 20px; display: grid; gap: 4px; font-size: 13px; }
+  .info table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  .info th, .info td { border: 1px solid var(--line); padding: 6px 8px; text-align: left; vertical-align: top; }
+  .info th { background: var(--soft); font-weight: 700; white-space: nowrap; }
+  .info .ask { padding: 12px 14px; border-radius: 10px; background: var(--warn-soft); }
+  .info .ask li { color: #5c3b00; }
+  .info .ask b { color: var(--warn); }
+  .info code { font-family: Consolas, monospace; font-size: 12px; background: var(--soft); padding: 1px 5px; border-radius: 4px; }
+  .none { color: var(--ink-3); font-size: 12.5px; }
+
+  /* 요약표 */
+  .modal { position: fixed; inset: 0; z-index: 50; background: rgba(20,27,52,.5); display: grid; place-items: center; padding: 20px; }
+  .modal > div { width: min(1100px, 100%); max-height: 90vh; overflow: auto; background: #fff; border-radius: 14px; padding: 20px 22px; }
+  .modal h2 { margin: 0 0 4px; font-size: 18px; }
+  .modal table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 12px; }
+  .modal th, .modal td { border: 1px solid var(--line); padding: 7px 9px; text-align: left; vertical-align: top; }
+  .modal th { background: var(--soft); }
+  .modal tr[data-go] { cursor: pointer; } .modal tr[data-go]:hover td { background: #FAFBFD; }
+
+  @media (max-width: 1100px) {
+    .layout { grid-template-columns: 400px minmax(0, 1fr); }
+    .col--map { grid-column: 1 / -1; position: static; max-height: none; order: -1; }
+    .col--map .box:first-child .map { display: flex; flex-wrap: wrap; gap: 4px; }
+    .col--map .phase { display: none; }
+  }
+  @media (max-width: 760px) {
+    .layout { display: block; padding: 12px; }
+    .col, .stage { position: static; max-height: none; }
+    .stage { margin: 12px 0; }
+    .phone { height: 680px; }
+  }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.1"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+  <symbol id="i-q" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 0 1 4.8 1c0 1.7-2.4 2.2-2.4 3.7"/><path d="M12 17.2v.1"/></symbol>
+  <symbol id="i-data" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></symbol>
+</svg>
+
+<header class="top">
+  <strong>AIR Credential · End-to-End Flow <span style="font-weight:500;opacity:.7">(MOCA 싱크용 v0.1)</span></strong>
+  <div class="legend"><span class="tag tag--aa">AirAsia 페이지</span><span class="tag tag--sdk">AIR SDK 화면 (MOCA 제공)</span><span class="tag tag--skp">SKP 페이지</span></div>
+  <button type="button" id="btn-summary">전체 단계 요약표</button>
+</header>
+
+<div class="layout">
+  <!-- 왼쪽: 여정 지도 · 시나리오 -->
+  <aside class="col col--map">
+    <div class="box"><h2>JOURNEY MAP</h2><div id="map"></div></div>
+    <div class="box scn">
+      <h2>시나리오</h2>
+      <label>AirAsia 회원 등급 <select id="opt-tier"><option value="black">Black</option><option value="platinum">Platinum</option><option value="gold" selected>Gold</option><option value="red">Red</option></select></label>
+      <label><input type="radio" name="scn" value="normal" checked> 정상 (발급 → 검증 → 지급)</label>
+      <label><input type="radio" name="scn" value="nocred"> Credential 미보유로 SKP 진입</label>
+      <label><input type="radio" name="scn" value="returning"> 재방문 (검증 완료 고객)</label>
+      <p class="fine" style="margin-top:6px">시나리오를 바꾸면 처음 화면으로 돌아갑니다.</p>
+    </div>
+  </aside>
+
+  <!-- 가운데: 폰 -->
+  <section class="stage" aria-label="화면 미리보기">
+    <div class="owner" id="owner"></div>
+    <div class="phone">
+      <div class="addr" id="addr"></div>
+      <div class="page" id="page"></div>
+      <div class="overlay" id="overlay"></div>
+    </div>
+    <div class="nav"><button type="button" id="prev">← 이전</button><span class="pos" id="pos"></span><button type="button" id="next">다음 →</button></div>
+  </section>
+
+  <!-- 오른쪽: 이 화면에서 일어나는 일 -->
+  <aside class="col"><div class="box info" id="info"></div></aside>
+</div>
+
+<div class="modal" id="modal" hidden><div role="dialog" aria-modal="true" aria-labelledby="sum-t">
+  <div style="display:flex;justify-content:space-between;align-items:center"><h2 id="sum-t">전체 단계 요약</h2><button type="button" id="sum-close" class="btn btn--line" style="width:auto;min-height:36px">닫기</button></div>
+  <p class="fine">행을 누르면 해당 화면으로 이동합니다. SDK 처리와 데이터는 가정이며 MOCA 확인 필요 항목은 Q 번호로 표시했습니다.</p>
+  <table id="sum-table"></table>
+</div></div>
+
+<script>
+/* ===== 데이터: 정책서 v0.2 보상 예시안 ===== */
+const TIERS = {
+  black:    { name: 'Black',    pkg: 'Korea Premium Experience', total: 30000, items: [['kfv', 'Free admission', '1 ticket'], ['oy', 'Mobile voucher', '₩10,000']] },
+  platinum: { name: 'Platinum', pkg: 'Korea Traveler Package',   total: 15000, items: [['kfv', 'Admission discount', '₩10,000 off'], ['oy', 'Mobile voucher', '₩5,000']] },
+  gold:     { name: 'Gold',     pkg: 'Korea Welcome Gift',       total: 7000,  items: [['oy', 'Mobile voucher', '₩4,000'], ['gs', 'Mobile voucher', '₩3,000']] },
+  red:      { name: 'Red',      pkg: 'Korea Hello Gift',         total: 4000,  items: [['gs', 'Mobile voucher', '₩4,000']] }
+};
+const BR = { oy: ['Olive Young', 'var(--oy)', 'BEAUTY'], gs: ['GS25', 'var(--gs)', 'STORE'], kfv: ['Korean Folk Village', 'var(--kfv)', 'ATTRACTION'] };
+const OWN = {
+  aa:  { label: 'AirAsia 페이지', c: 'var(--aa)' },
+  sdk: { label: 'AIR SDK 화면 · MOCA 제공', c: 'var(--sdk)' },
+  skp: { label: 'SKP 페이지', c: 'var(--skp)' }
+};
+const URL_AA = 'airasia.com/korea-benefits', URL_SKP = 'okcashbag.com/credential/promotion01';
+const won = n => '₩' + n.toLocaleString('en-US');
+const today = () => new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+
+const S = { tier: 'gold', scn: 'normal', claimed: false, agreed: false, sdk: 0 }; // sdk: 시트 내부 단계
+const T = () => TIERS[S.tier];
+
+/* ===== 화면 조각 ===== */
+const hdAA = () => `<div class="hd hd--aa"><span class="wm-aa">airasia</span><span style="font-size:12px;font-weight:700">MEMBERS</span></div>`;
+const hdSKP = () => `<div class="hd hd--skp"><span class="wm-skp"><i>OK</i>OK Cashbag</span><span class="chip">EN</span></div>`;
+const vc = (tier, st = 'Valid') => `<div class="vc" data-tier="${tier}"><div class="vc__top"><span class="vc__logo">air.</span><span class="vc__st">${st}</span></div>
+  <div class="vc__ey">AIRASIA MEMBERSHIP · CREDENTIAL</div><div class="vc__t">${TIERS[tier].name} Membership Credential</div><div class="vc__m">ISSUER · AIRASIA<br>ISSUED: ${today().toUpperCase()}</div></div>`;
+const ticket = ([id, title, value], open, idx = 0) => `<div class="ticket" style="--brand:${BR[id][1]}"><div class="ticket__stub">${BR[id][2]}</div>
+  <div class="ticket__body"><small>${BR[id][0]}</small><b>${value}</b><span>${title}</span>${open ? `<button type="button" class="open" data-goto="S-04" data-v="${idx}">View voucher →</button>` : ''}</div></div>`;
+const sdkSheet = (host, inner) => `<div class="host">${host}</div><div class="dim"></div><div class="sdk">${inner}<p class="sdk__pw">Powered by <b>AIR</b> · MOCA Network</p></div>`;
+const sdkApp = (who) => who === 'aa'
+  ? `<div class="sdk__app" style="--c:var(--aa)"><i>aa</i><div><b>AirAsia</b><small>is using AIR</small></div></div>`
+  : `<div class="sdk__app" style="--c:var(--skp)"><i>OK</i><div><b>OK Cashbag (SK planet)</b><small>is using AIR</small></div></div>`;
+
+/* AirAsia · SKP 호스트 페이지 (SDK 시트 배경으로도 사용) */
+const pageA01 = () => `${hdAA()}<div class="p" style="--c:var(--aa)">
+  <span class="eyebrow">Korea benefits for members</span>
+  <h1 class="h1">Flying to Korea?<br>Your tier unlocks extras.</h1>
+  <p class="lead">Get your AirAsia Membership Credential, then claim a Korea benefit package on OK Cashbag.</p>
+  <div class="chips"><span class="chip">Black</span><span class="chip">Platinum</span><span class="chip">Gold</span><span class="chip">Red</span></div>
+  <ol class="steps"><li><span><b>Get your credential here</b>Your tier is saved to your AIR Wallet.</span></li><li><span><b>Claim on OK Cashbag</b>Verify it and get your package in Korea.</span></li></ol>
+  <button type="button" class="btn btn--aa" data-goto="A-02">Get my membership credential</button>
+  <p class="fine">SKP 제안 화면 · 실제 구현은 AirAsia</p></div>`;
+/* S-01: 서울 일러스트(남산타워 · 한옥 · 민속촌) 포함 프로모션 메인 */
+const SEOUL_SVG = `<svg class="seoul" viewBox="0 0 360 210" role="img" aria-label="Illustration of Seoul: N Seoul Tower on Namsan, city skyline and a traditional hanok roof">
+  <defs><linearGradient id="g-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFE3D6"/><stop offset="1" stop-color="#E5EEFF"/></linearGradient></defs>
+  <rect width="360" height="210" rx="22" fill="url(#g-sky)"/>
+  <circle cx="292" cy="54" r="26" fill="#FF8A5B" opacity=".9"/>
+  <path d="M0 150 C60 120 90 128 130 112 C170 96 205 70 240 86 C270 100 300 118 360 112 V210 H0Z" fill="#C9D6F5"/>
+  <!-- N서울타워 -->
+  <g transform="translate(212 20)">
+    <line x1="22" y1="0" x2="22" y2="18" stroke="#3A4A86" stroke-width="2"/>
+    <rect x="18" y="16" width="8" height="10" rx="2" fill="#3A4A86"/>
+    <ellipse cx="22" cy="31" rx="15" ry="6" fill="#FF5A36"/>
+    <rect x="11" y="31" width="22" height="7" rx="3" fill="#3A4A86"/>
+    <path d="M18 38 L16 74 H28 L26 38Z" fill="#5A6BB0"/>
+    <rect x="12" y="72" width="20" height="5" rx="2" fill="#3A4A86"/>
+  </g>
+  <!-- 도시 스카이라인 -->
+  <g fill="#9FB1E3">
+    <rect x="18" y="128" width="22" height="40" rx="3"/><rect x="44" y="114" width="16" height="54" rx="3"/><rect x="64" y="134" width="26" height="34" rx="3"/>
+    <rect x="262" y="120" width="18" height="48" rx="3"/><rect x="284" y="104" width="22" height="64" rx="3"/><rect x="310" y="128" width="30" height="40" rx="3"/>
+  </g>
+  <g fill="#fff" opacity=".7"><rect x="48" y="122" width="4" height="4"/><rect x="48" y="132" width="4" height="4"/><rect x="290" y="112" width="4" height="4"/><rect x="298" y="112" width="4" height="4"/><rect x="290" y="124" width="4" height="4"/></g>
+  <!-- 한옥 (민속촌) -->
+  <g transform="translate(96 108)">
+    <path d="M-6 34 C20 24 40 22 84 22 C128 22 148 24 174 34 C150 30 140 30 128 36 H40 C28 30 18 30 -6 34Z" fill="#2B2F4A"/>
+    <path d="M14 20 C40 8 128 8 154 20 C136 18 120 22 112 24 H56 C48 22 32 18 14 20Z" fill="#3E4466"/>
+    <rect x="40" y="36" width="88" height="34" fill="#F6E9D7"/>
+    <g fill="#B8603A"><rect x="44" y="36" width="5" height="34"/><rect x="81" y="36" width="5" height="34"/><rect x="119" y="36" width="5" height="34"/></g>
+    <g fill="none" stroke="#C9A67E" stroke-width="1.5"><rect x="52" y="42" width="24" height="20"/><rect x="90" y="42" width="24" height="20"/><path d="M64 42v20M52 52h24M102 42v20M90 52h24"/></g>
+    <rect x="30" y="70" width="108" height="8" rx="2" fill="#8C6A4E"/>
+  </g>
+  <!-- 땅 · 소나무 -->
+  <path d="M0 186 C80 176 280 176 360 186 V210 H0Z" fill="#B7D9C4"/>
+  <g transform="translate(30 150)"><rect x="9" y="22" width="4" height="16" fill="#7A5A3E"/><path d="M11 0 L24 18 H-2Z M11 8 L26 28 H-4Z" fill="#3F7D4E"/></g>
+  <g transform="translate(316 152)"><rect x="9" y="20" width="4" height="16" fill="#7A5A3E"/><path d="M11 0 L22 16 H0Z M11 7 L24 26 H-2Z" fill="#3F7D4E"/></g>
+</svg>`;
+const pageS01 = () => { const pv = TIERS[S.preview || 'black']; return `${hdSKP()}
+  <section class="s01-hero">
+    <div class="chips"><span class="chip">✈ For AirAsia members</span><span class="chip">🇰🇷 Korea only</span></div>
+    <h1 class="h1" style="margin-top:12px">Your Korea<br>benefits are <em>waiting</em></h1>
+    <p class="lead" style="margin-top:8px">Verify your AirAsia membership and get a Korea benefit package for Olive Young, GS25 and more.</p>
+    <div class="s01-visual">${SEOUL_SVG}
+      <span class="sticker sticker--a">HELLO<br>KOREA!</span>
+      <span class="chip float f1" style="color:var(--oy)">● Olive Young</span>
+      <span class="chip float f2" style="color:var(--kfv)">● Folk Village</span>
+      <span class="chip float f3" style="color:var(--gs)">● GS25</span>
+    </div>
+    <button type="button" class="btn btn--skp s01-cta" data-goto="S-LOGIN">Log in with AIR</button>
+    <p class="s01-period">🗓 Event period <b>2027.01.01 – 2027.03.31</b> · while supplies last</p>
+  </section>
+
+  <section class="s01-sec">
+    <div class="s01-head"><span class="s01-num">HOW IT WORKS</span><h2 class="h2">3 steps to your benefits</h2></div>
+    <ol class="s01-steps">
+      <li><i>👤</i><div><small>STEP 1</small><b>Log in</b><p>Use the same AIR account you used at AirAsia.</p></div></li>
+      <li><i>🛡</i><div><small>STEP 2</small><b>Share your credential</b><p>We check your membership tier. Nothing else.</p></div></li>
+      <li><i>🎁</i><div><small>STEP 3</small><b>Get your package</b><p>All vouchers for your tier, issued at once.</p></div></li>
+    </ol>
+    <div class="alert" style="margin-top:12px">ⓘ No credential yet? Get it first on the AirAsia promotion page.</div>
+  </section>
+
+  <section class="s01-sec" style="background:#E8F1FF">
+    <div class="s01-head"><span class="s01-num">BENEFITS BY TIER</span><h2 class="h2">Higher tier,<br>bigger package</h2><p class="lead" style="font-size:13px">Your tier is checked when you log in.</p></div>
+    <div class="s01-tabs" role="tablist">${Object.keys(TIERS).map(k => `<button type="button" role="tab" aria-selected="${k === (S.preview || 'black')}" data-tab="${k}">${TIERS[k].name}</button>`).join('')}</div>
+    <div class="pkg" style="background:#fff">
+      <div class="pkg__h"><div><small>${pv.name.toUpperCase()} PACKAGE</small><b>${pv.pkg}</b><small>${pv.items.length} voucher${pv.items.length > 1 ? 's' : ''} · issued together</small></div><div class="pkg__tot">Total value<b>${won(pv.total)}</b></div></div>
+      <div class="tickets">${pv.items.map(i => ticket(i, false)).join('')}</div>
+    </div>
+    <p class="fine" style="margin-top:8px">One package per member. Products and values are examples.</p>
+  </section>
+
+  <section class="s01-sec" style="background:#EAF7F2">
+    <div class="s01-head"><span class="s01-num">HOW TO USE</span><h2 class="h2">Just show the barcode</h2></div>
+    <ol class="s01-steps">
+      <li><i style="background:#fff">📱</i><div><small>STEP 1</small><b>Open My package</b><p>Log in again anytime. Your vouchers stay here.</p></div></li>
+      <li><i style="background:#fff">▥</i><div><small>STEP 2</small><b>Show the barcode</b><p>Present it at the counter before you pay.</p></div></li>
+      <li><i style="background:#fff">✓</i><div><small>STEP 3</small><b>Done!</b><p>The staff scans it and applies your voucher.</p></div></li>
+    </ol>
+  </section>
+
+  <section class="s01-sec">
+    <div class="s01-head"><span class="s01-num">WHERE TO USE</span><h2 class="h2">Popular spots in Korea</h2></div>
+    <div class="s01-brands">
+      <div style="--b:var(--oy)"><i>🛍</i><b>Olive Young</b><span>K-beauty stores</span></div>
+      <div style="--b:var(--gs)"><i>🥤</i><b>GS25</b><span>Convenience stores</span></div>
+      <div style="--b:var(--kfv)"><i>🏯</i><b>Korean Folk Village</b><span>Yongin</span></div>
+    </div>
+  </section>
+
+  <section class="s01-sec" style="padding-top:0">
+    <div class="s01-head"><span class="s01-num">FAQ</span><h2 class="h2">Questions?</h2></div>
+    <div class="s01-faq">
+      <details><summary>Who can join?</summary><p>AirAsia members who have an AirAsia Membership Credential in their AIR Wallet.</p></details>
+      <details><summary>How do I get my package?</summary><p>After verification, tap "Get my package". All vouchers in your tier package are issued at once. One package per member.</p></details>
+      <details><summary>My tier changed after I joined.</summary><p>Your tier is fixed when your credential is verified. Later changes are not reflected.</p></details>
+      <details><summary>Verification failed. What now?</summary><p>Log in with the same account you used at AirAsia and check your credential hasn't expired. Still stuck? Contact us.</p></details>
+    </div>
+  </section>
+
+  <div style="padding:0 20px 20px"><div class="card s01-notes"><b>ⓘ Please note</b><ul>
+    <li>Limited quantities. If any voucher in a package runs out, that package can no longer be issued.</li>
+    <li>One package per member. All vouchers are issued together.</li>
+    <li>If you hold several AirAsia credentials, the highest valid tier applies.</li>
+    <li>Vouchers cannot be exchanged for cash.</li></ul></div></div>
+  <footer class="s01-foot"><b>OK Cashbag × AirAsia</b><br>Operated by SK planet Co., Ltd. · Terms · Privacy Policy<br>Prototype for review. Copy and benefits are examples.</footer>
+  <div class="s01-dock is-hidden"><button type="button" class="btn btn--skp" data-goto="S-LOGIN">Log in with AIR</button></div>`; };
+
+// S-01 하단 고정 버튼: 히어로 버튼이 화면에 보이는 동안은 숨기고, 스크롤로 사라지면 노출
+function bindDock() {
+  const pg = $('#page'), cta = $('.s01-cta', pg), dock = $('.s01-dock', pg);
+  if (!cta || !dock) { pg.onscroll = null; return; }
+  const sync = () => { const r = cta.getBoundingClientRect(), v = pg.getBoundingClientRect(); dock.classList.toggle('is-hidden', r.bottom > v.top && r.top < v.bottom); };
+  pg.onscroll = sync; sync();
+}
+
+/* ===== 단계 정의 ===== */
+const STEPS = [
+  /* ---------- Phase 1 · AirAsia (Issuer) ---------- */
+  { id: 'A-01', phase: 1, own: 'aa', name: 'AirAsia 프로모션 페이지', url: URL_AA,
+    screen: pageA01,
+    panel: { who: 'AirAsia', where: 'AirAsia 웹/앱 (SKP 제안안)',
+      proc: ['AirAsia 앱 배너·푸시·이메일로 진입', '[Get my membership credential] → AIR SDK 로그인 호출'],
+      data: [], ask: ['Q1. AirAsia 페이지 구현 범위·일정과 노출 채널', 'Q2. 앱 웹뷰에서 열릴 때 AIR 로그인(특히 Google) 동작 여부'] } },
+
+  { id: 'A-02', phase: 1, own: 'sdk', host: 'aa', name: 'AIR 로그인 (AirAsia에서)', url: URL_AA,
+    screen: () => sdkSheet(pageA01(), `${sdkApp('aa')}<p class="sdk__t">Sign in to AIR</p>
+      <button type="button" class="btn btn--line" data-goto="A-ISSUE"><b style="color:#4285F4">G</b> Continue with Google</button>
+      <button type="button" class="btn btn--sdk" data-goto="A-ISSUE">Continue with email</button>
+      <p class="fine" style="text-align:center">Use the account linked to your AirAsia membership.</p>`),
+    panel: { who: 'MOCA (AIR SDK)', where: 'AirAsia 페이지 위 SDK 화면',
+      proc: ['AIR SDK 로그인 (AIR Identity)', 'AirAsia가 AIR 계정 식별자를 받음', 'AirAsia 회원 계정 ↔ AIR 계정 연결'],
+      data: [['AIR SDK → AirAsia', 'AIR 계정 식별자']],
+      ask: ['Q3. AirAsia 회원 로그인과 AIR 계정 연결 시점 (AirAsia 로그인 선행 필요 여부)', 'Q4. 로그인 수단 (Google · 이메일 외)'] } },
+
+  { id: 'A-ISSUE', phase: 1, own: 'sdk', host: 'aa', name: '등급 조회 · Credential 발급', url: URL_AA,
+    screen: () => sdkSheet(pageA01(), S.sdk === 0
+      ? `${sdkApp('aa')}<p class="sdk__t">Store your membership credential</p>
+         <div class="sdk__row"><span>AirAsia membership tier</span><b>${T().name}</b></div>
+         <div class="sdk__row"><span>Valid until</span><b>12 months</b></div>
+         <p class="fine">Your credential is saved to your AIR Wallet. AirAsia doesn't share it with anyone unless you choose to.</p>
+         <button type="button" class="btn btn--sdk" data-sdk="1">Confirm</button>`
+      : S.sdk === 1
+      ? `<div class="spin"></div><p class="sdk__t" style="text-align:center">Issuing your credential…</p>`
+      : `<div class="okmark"><svg class="i"><use href="#i-check"/></svg></div><p class="sdk__t" style="text-align:center">Credential stored</p>
+         <p class="fine" style="text-align:center">${T().name} Membership Credential is in your AIR Wallet.</p>
+         <button type="button" class="btn btn--sdk" data-goto="A-03">Done</button>`),
+    panel: { who: 'AirAsia (Issuer) · MOCA', where: 'AirAsia 페이지 위 SDK 화면',
+      proc: ['AirAsia 서버가 회원 등급 조회', '등급 값으로 Credential 발급 요청 (Issuer: AirAsia)', 'MOCA 발급 인프라 → 고객 AIR Wallet 저장', 'SKP는 관여하지 않음 (발급 이력·명단 미수신)'],
+      data: [['AirAsia → AIR SDK', 'tier (Black/Platinum/Gold/Red), 유효기간'], ['AIR SDK → AIR Wallet', 'AirAsia Membership Credential']],
+      ask: ['Q5. Credential 스키마: 이름, attribute(tier enum, 유효기간 등), 등급 표기 값', 'Q6. 재발급·갱신 정책, 등급 변경 시 기존 Credential 폐기 여부', 'Q7. 한 계정에 여러 Credential이 쌓이는지 (SKP는 최고 등급 적용 정책)'] } },
+
+  { id: 'A-03', phase: 1, own: 'aa', name: 'Credential 발급 완료', url: URL_AA,
+    screen: () => `${hdAA()}<div class="p" style="--c:var(--aa)">
+      <span class="eyebrow">Credential ready</span><h1 class="h2">Your credential is ready</h1>
+      ${vc(S.tier)}
+      <button type="button" class="btn btn--aa" data-goto="S-01">Get benefits on OK Cashbag →</button>
+      <p class="fine">We've also sent this link to you by email and SMS.</p>
+      <p class="fine">SKP 제안 화면 · 실제 구현은 AirAsia</p></div>`,
+    panel: { who: 'AirAsia', where: 'AirAsia 웹/앱 (SKP 제안안)',
+      proc: ['발급 완료 안내', 'SKP 프로모션 페이지로 이동 (다른 도메인)', '나중에 들어올 수 있도록 이메일·SMS로 링크 발송'],
+      data: [['AirAsia → SKP', '링크 이동만 (유입 경로 파라미터 외 개인정보 전달 없음)']],
+      ask: ['Q8. SKP 링크에 유입 경로(utm) 파라미터 부착 여부', 'Q9. 이메일·SMS 발송 주체와 시점'] } },
+
+  /* ---------- Phase 2 · SKP (Verifier) ---------- */
+  { id: 'S-01', phase: 2, own: 'skp', name: 'SKP 프로모션 메인', url: URL_SKP,
+    screen: pageS01,
+    panel: { who: 'SKP', where: 'OCB 도메인 하위 서브 경로 · AIR SDK 탑재',
+      proc: ['A-03 버튼 또는 이메일·SMS 링크로 진입', '구성: 히어로(서울 일러스트) · 참여 방법 3단계 · 등급별 패키지 미리보기(탭) · 사용 방법 · 사용처 · FAQ · 유의사항 · 하단 고정 로그인', '등급 탭은 미리보기일 뿐 등급 선택·확정이 아님 (확정은 검증 시)', '[Log in with AIR] → AIR SDK 로그인 호출'],
+      data: [],
+      ask: ['Q10. SKP 서비스 도메인(개발·스테이징·운영)의 SDK 허용 Origin 등록 절차'] } },
+
+  { id: 'S-LOGIN', phase: 2, own: 'sdk', host: 'skp', name: 'AIR 로그인 (SKP에서)', url: URL_SKP,
+    screen: () => sdkSheet(pageS01(), `${sdkApp('skp')}<p class="sdk__t">Sign in to AIR</p>
+      <button type="button" class="btn btn--line" data-login><b style="color:#4285F4">G</b> Continue with Google</button>
+      <button type="button" class="btn btn--sdk" data-login>Continue with email</button>
+      <p class="fine" style="text-align:center">Use the same account you used at AirAsia.</p>`),
+    panel: { who: 'MOCA (AIR SDK)', where: 'SKP 페이지 위 SDK 화면',
+      proc: ['AIR SDK 로그인 (SKP 파트너)', 'SKP 서버가 AIR 식별자로 동의·검증 이력 조회', '분기: 검증 완료 → 내 패키지 / 동의 이력 없음 → 동의 / 동의만 있음 → 바로 검증'],
+      data: [['AIR SDK → SKP', 'AIR 계정 식별자']],
+      ask: ['Q11. AirAsia에서 로그인한 세션을 SKP에서 재사용(SSO)할 수 있는지, 아니면 다시 로그인하는지', 'Q12. SKP가 받는 식별자 유형 (계정별 고정값인지, 이메일 포함 여부)', 'Q13. 로그인만으로 Credential 보유 여부를 알 수 있는지 (현재는 검증해야 앎)'] } },
+
+  { id: 'S-02', phase: 2, own: 'skp', name: '필수 동의 (최초 1회)', url: URL_SKP,
+    screen: () => `${hdSKP()}<div class="p">
+      <span class="eyebrow">Step 2 of 3</span><h1 class="h2">Share your AirAsia credential</h1>
+      <div class="card" style="font-size:12.5px"><b>We check only</b> issuer, credential type, tier, validity and holder. We don't receive your name, email, member number or flight history.</div>
+      <div class="consent" id="consent">
+        <label><input type="checkbox" data-all> Agree to all (required)</label>
+        <label><input type="checkbox" data-c> <span><span class="req">[Required]</span> Collection and use of personal information</span></label>
+        <label><input type="checkbox" data-c> <span><span class="req">[Required]</span> Sharing my credential for verification</span></label>
+        <label><input type="checkbox" data-c> <span><span class="req">[Required]</span> Promotion terms</span></label>
+        <label><input type="checkbox" data-c> <span><span class="xb">[If required]</span> Transfer of personal information overseas</span></label>
+      </div>
+      <button type="button" class="btn btn--skp" id="btn-agree" data-goto="S-VERIFY" disabled>Agree and check my credential</button></div>`,
+    panel: { who: 'SKP', where: 'SKP 페이지',
+      proc: ['로그인 후, 검증 전에 필수 동의 (최초 1회만)', '동의 이력 저장 (AIR 식별자 기준)', '[Agree] → AIR SDK 검증 요청'],
+      data: [['SKP 내부', '동의 항목·버전·일시']],
+      ask: ['Q14. SDK 검증 화면에도 자체 승인(Allow) 단계가 있는지 → SKP 동의와 중복되면 통합 방안', 'Q15. 국외 이전 판단 자료: AIR Identity·Wallet·검증 서버 위치와 운영 주체, SKP↔AIR 송수신 항목'] } },
+
+  { id: 'S-VERIFY', phase: 2, own: 'sdk', host: 'skp', name: 'Credential 검증', url: URL_SKP,
+    screen: () => sdkSheet(pageS01(), S.sdk === 0
+      ? `${sdkApp('skp')}<p class="sdk__t">Share proof of your membership?</p>
+         <div class="sdk__row"><span>Requested</span><b>AirAsia Membership Credential</b></div>
+         <div class="sdk__row"><span>Checks</span><b>Issuer · tier · validity</b></div>
+         <p class="fine">Your credential stays in your AIR Wallet. Only the verification result is shared with OK Cashbag.</p>
+         <button type="button" class="btn btn--sdk" data-sdk="1">Allow</button>
+         <button type="button" class="btn btn--line" data-goto="S-01">Cancel</button>`
+      : S.sdk === 1
+      ? `<div class="spin"></div><p class="sdk__t" style="text-align:center">Verifying…</p><p class="fine" style="text-align:center">Issuer · validity · holder · tier</p>`
+      : S.scn === 'nocred'
+      ? `<p class="sdk__t" style="text-align:center">No matching credential</p><p class="fine" style="text-align:center">We couldn't find an AirAsia Membership Credential in this AIR account.</p>
+         <button type="button" class="btn btn--sdk" data-goto="S-02E">Continue</button>`
+      : `<div class="okmark"><svg class="i"><use href="#i-check"/></svg></div><p class="sdk__t" style="text-align:center">Verified</p>
+         <button type="button" class="btn btn--sdk" data-goto="S-03">Continue</button>`),
+    panel: { who: 'MOCA (AIR SDK) → SKP', where: 'SKP 페이지 위 SDK 화면',
+      proc: ['SKP Verification Program 조건으로 검증 (issuer = AirAsia, tier, 유효·미폐기, holder 일치)', '여러 Credential 보유 시 최고 등급 적용', '결과를 SKP 서버가 다시 확인한 뒤 참여·등급 확정 (검증 성공 = 참여 확정)', '실패 시 사유별 안내 화면(S-02E)'],
+      data: [['AIR SDK → SKP', '검증 결과(성공/실패 코드), tier'], ['전달하지 않음', 'Credential 원문, 이름, 회원번호, 탑승 이력']],
+      ask: ['Q16. 검증 결과로 SKP가 받는 값: 성공 여부만인지, tier 값까지인지', 'Q17. 서버 측 검증 확인 방법 (검증 API · 웹훅 · 서명된 결과) — 부정 수령 방지 핵심', 'Q18. 실패 오류 코드 구분 (미보유 / 만료 / 폐기 / holder 불일치 / 시스템 오류)', 'Q19. 복수 Credential일 때 최고 등급 선택을 SDK가 하는지, SKP가 하는지', 'Q20. 검증 세션·수수료 정책 (Phase 1 PoC 기준)'] } },
+
+  { id: 'S-02E', phase: 2, own: 'skp', name: '검증 실패 (미보유)', url: URL_SKP, branch: true,
+    screen: () => `${hdSKP()}<div class="p">
+      <div class="okmark" style="background:#FDECEC;color:#E5484D"><svg class="i"><use href="#i-x"/></svg></div>
+      <h1 class="h2" style="text-align:center">No AirAsia credential found</h1>
+      <p class="lead" style="text-align:center">Get your membership credential from AirAsia first, then come back here.</p>
+      <button type="button" class="btn btn--aa" data-goto="A-01">Get my credential at AirAsia</button>
+      <button type="button" class="btn btn--line" data-goto="S-LOGIN">Try another account</button>
+      <p class="fine" style="text-align:center">Need help? Contact us</p></div>`,
+    panel: { who: 'SKP', where: 'SKP 페이지',
+      proc: ['SDK 실패 코드에 따라 안내 문구·버튼을 나눔', '미보유: AirAsia 발급 페이지(A-01)로 이동', '만료: 유효한 Credential 확인 안내 / holder 불일치: 같은 계정 로그인 안내 / 시스템 오류: 재시도'],
+      data: [['SKP 내부', '검증 실패 일시·코드']],
+      ask: ['Q18. 실패 코드 구분 (위와 동일)', 'Q21. SKP 페이지 안에서 SDK로 바로 발급까지 처리할 수 있는지 (가능하면 A-01 이동 없이 처리)'] } },
+
+  { id: 'S-03', phase: 2, own: 'skp', name: '검증 결과 · 등급 확정', url: URL_SKP,
+    screen: () => `${hdSKP()}<div class="p">
+      <span class="eyebrow">Verified</span><h1 class="h2">You're a ${T().name} member</h1>
+      ${vc(S.tier, 'Verified')}
+      <dl class="kv"><div><dt>Issuer</dt><dd>AirAsia</dd></div><div><dt>Membership tier</dt><dd>${T().name}</dd></div><div><dt>Validity</dt><dd style="color:var(--ok)">Valid</dd></div><div><dt>Holder</dt><dd>Matches your account</dd></div><div><dt>Verified at</dt><dd>${today()}</dd></div></dl>
+      <div class="alert"><svg class="i"><use href="#i-info"/></svg>Your tier is now fixed for this promotion.</div>
+      <button type="button" class="btn btn--skp" data-goto="S-03P">See my ${T().name} package →</button></div>`,
+    panel: { who: 'SKP', where: 'SKP 페이지',
+      proc: ['SDK 검증 결과로 받은 값만 표시', '참여·적용 등급 확정 기록 (이후 등급 변경 미반영)'],
+      data: [['SKP 내부', 'AIR 식별자, 검증 결과·일시, 적용 등급, 참여 상태']],
+      ask: ['Q16. 화면에 표시할 attribute (발급일·유효기간 등)를 SDK가 SKP에 주는지'] } },
+
+  /* ---------- Phase 3 · 혜택 (SKP) ---------- */
+  { id: 'S-03P', phase: 3, own: 'skp', name: '혜택 패키지 받기', url: URL_SKP,
+    screen: () => `${hdSKP()}<div class="p">
+      <div class="sdk__row"><span>${T().name} member · Verified</span><span>›</span></div>
+      <div class="pkg"><div class="pkg__h"><div><small>${T().name.toUpperCase()} PACKAGE</small><b>${T().pkg}</b><small>${T().items.length} vouchers · issued together</small></div><div class="pkg__tot">Total value<b>${won(T().total)}</b></div></div>
+        ${S.claimed ? `<div class="done"><svg class="i"><use href="#i-check"/></svg>Package received · ${today()}</div>` : ''}
+        <div class="tickets">${T().items.map((i, n) => ticket(i, S.claimed, n)).join('')}</div></div>
+      ${S.claimed ? `<p class="fine" style="text-align:center">Your vouchers stay here. Log in anytime to view them.</p>`
+        : `<div class="alert"><svg class="i"><use href="#i-info"/></svg>All vouchers are issued at once. One package per member.</div>
+           <button type="button" class="btn btn--skp" data-claim>Get my package</button>`}</div>`,
+    // 받기 확인 시트 (SKP 화면 · SDK 아님) → 지급 완료 시 S-04 혜택 상세로 이동
+    overlay: () => !S.confirm ? '' : `<div class="dim"></div><div class="sdk sheet-skp">
+      ${S.issuing
+        ? `<div class="spin" style="border-top-color:var(--skp);border-color:var(--skp-soft);border-top-color:var(--skp)"></div><p class="sdk__t" style="text-align:center">Issuing your package…</p><p class="fine" style="text-align:center">Checking availability and issuing all vouchers together.</p>`
+        : `<p class="sdk__t">Get your package now?</p>
+           <div class="pkg" style="padding:12px"><div class="pkg__h"><div><b>${T().pkg}</b><small>${T().items.length} vouchers</small></div><div class="pkg__tot">Total<b>${won(T().total)}</b></div></div>
+             ${T().items.map(([id, t, v]) => `<div class="sdk__row" style="background:#fff"><span>${BR[id][0]} · ${t}</span><b>${v}</b></div>`).join('')}</div>
+           <p class="fine">All vouchers are issued together, right away. You can get this package only once, and it can't be changed or exchanged.</p>
+           <div style="display:grid;grid-template-columns:1fr 2fr;gap:8px"><button type="button" class="btn btn--line" data-cancel>Cancel</button><button type="button" class="btn btn--skp" data-confirm>Get package</button></div>`}
+      </div>`,
+    panel: { who: 'SKP', where: 'SKP 페이지',
+      proc: ['[Get my package] → 받기 확인 시트 (SKP 화면): 구성·금액·1회 한정 안내', '[Get package] → SKP 서버: 참여 확정·기수령·혜택별 잔여 수량 확인', '선매입 쿠폰을 패키지 단위로 한 번에 배정 (하나라도 부족하면 지급 안 함)', '지급 성공 시 수량 차감·Claimed 기록 → S-04 혜택 상세로 이동', 'MOCA·AIR SDK 관여 없음'],
+      data: [['SKP 내부', '패키지 코드, 배정 쿠폰, 지급 일시·상태']],
+      ask: [] } },
+
+  { id: 'S-04', phase: 3, own: 'skp', name: '혜택 상세 · 매장 사용', url: URL_SKP,
+    screen: () => { const items = T().items, k = Math.min(S.voucher || 0, items.length - 1), [id, title, value] = items[k]; return `${hdSKP()}<div class="p">
+      <div class="done"><svg class="i"><use href="#i-check"/></svg>${T().pkg} received · ${today()}</div>
+      ${items.length > 1 ? `<div class="s01-tabs" role="tablist" style="grid-template-columns:repeat(${items.length},1fr);margin:0">${items.map(([bid], i) => `<button type="button" role="tab" aria-selected="${i === k}" data-v="${i}">${BR[bid][0]}</button>`).join('')}</div>` : ''}
+      <div class="voucher" style="--brand:${BR[id][1]}"><div class="voucher__h"><small>${BR[id][0]} · ${k + 1} of ${items.length}</small><b>${value}</b><small>${title}</small></div>
+        <div class="voucher__b"><div class="bars"></div><div class="code">${['2371 3442 2377', '8806 1937 5520'][k] || '4410 2268 9031'}</div><p class="fine" style="margin-top:6px">Valid until 2027-06-30 · turn up screen brightness for faster scanning</p></div></div>
+      <div class="card" style="font-size:12.5px;display:grid;gap:6px"><div><b>Where to use</b><br>${{ oy: 'Olive Young stores in Korea', gs: 'GS25 convenience stores in Korea', kfv: 'Korean Folk Village ticket office, Yongin' }[id]}</div><div><b>How to use</b><br>Show this barcode at the counter before you pay.</div></div>
+      <div class="card s01-notes"><b>Notes</b><ul><li>Cannot be exchanged for cash.</li><li>Usage and remaining balance are not shown on this page.</li><li>Follows the partner's voucher policy.</li></ul></div>
+      <button type="button" class="btn btn--line" data-goto="S-03P">Back to my package</button></div>`; },
+    panel: { who: 'SKP · 제휴 사용처', where: 'SKP 페이지 → 매장',
+      proc: ['패키지 지급 직후 자동 진입 (또는 내 패키지에서 View voucher)', '패키지 안 쿠폰을 탭으로 전환: 쿠폰번호·바코드·유효기간·사용처·이용 방법', '매장에서 바코드 제시 → 공급사가 사용 처리 (기존 정산)', '사용 여부·잔액은 페이지에 표시하지 않음'],
+      data: [['SKP → 고객', '쿠폰번호·바코드 (본인 로그인 시에만)']],
+      ask: [] } }
+];
+const IDX = Object.fromEntries(STEPS.map((s, i) => [s.id, i]));
+const PH = { 1: 'Phase 1 · AirAsia 발급 (Issuer)', 2: 'Phase 2 · SKP 검증 (Verifier)', 3: 'Phase 3 · 혜택 지급 · 사용' };
+
+/* ===== 렌더 ===== */
+let cur = 0;
+function show(id) {
+  const next = typeof id === 'number' ? id : IDX[id];
+  if (next !== cur) { S.sdk = 0; S.confirm = S.issuing = false; } // 다른 화면으로 가면 시트 상태 초기화
+  cur = next;
+  const s = STEPS[cur], o = OWN[s.own];
+  $('#owner').style.setProperty('--c', o.c);
+  $('#owner').innerHTML = `<span>${o.label}${s.host ? ` <small>· ${s.host === 'aa' ? 'AirAsia' : 'SKP'} 페이지 위에 표시</small>` : ''}</span><small>${s.id}</small>`;
+  $('#addr').innerHTML = `<svg class="i lock"><use href="#i-lock"/></svg><b>${s.url}</b>${s.own === 'aa' ? '<span class="fine">(예시)</span>' : ''}`;
+  $('#page').innerHTML = s.screen();
+  $('#page').scrollTop = 0;
+  renderOverlay();
+  bindDock();
+  $('#pos').textContent = `${cur + 1} / ${STEPS.length}`;
+  $('#prev').disabled = cur === 0;
+  $('#next').disabled = cur === STEPS.length - 1;
+  renderInfo(s);
+  $$('#map button').forEach(b => b.setAttribute('aria-current', b.dataset.goto === s.id));
+  bindConsent();
+}
+function renderOverlay() { const s = STEPS[cur]; $('#overlay').innerHTML = s.overlay ? s.overlay() : ''; }
+function renderInfo(s) {
+  const p = s.panel, o = OWN[s.own];
+  $('#info').innerHTML = `
+    <span class="tag tag--${s.own}">${o.label}</span>
+    <h1 style="margin-top:8px"><span class="sid">${s.id}</span>${s.name}</h1>
+    <dl class="meta"><dt>Phase</dt><dd>${PH[s.phase]}</dd><dt>주체</dt><dd>${p.who}</dd><dt>화면 위치</dt><dd>${p.where}</dd><dt>URL</dt><dd><code>${s.url}</code>${s.own === 'aa' ? ' (예시)' : ''}</dd></dl>
+    <h3><svg class="i"><use href="#i-gear"/></svg>처리 내용</h3><ol>${p.proc.map(x => `<li>${x}</li>`).join('')}</ol>
+    <h3><svg class="i"><use href="#i-data"/></svg>주고받는 데이터</h3>
+    ${p.data.length ? `<table><tr><th>방향</th><th>항목</th></tr>${p.data.map(([a, b]) => `<tr><td>${a}</td><td>${b}</td></tr>`).join('')}</table>` : '<p class="none">없음</p>'}
+    <h3><svg class="i"><use href="#i-q"/></svg>MOCA 확인 필요</h3>
+    ${p.ask.length ? `<div class="ask"><ul>${p.ask.map(x => `<li>${x.replace(/^(Q\d+\.)/, '<b>$1</b>')}</li>`).join('')}</ul></div>` : '<p class="none">없음 (SKP 내부 처리)</p>'}`;
+}
+function renderMap() {
+  let html = '', ph = 0;
+  STEPS.forEach((s, i) => {
+    if (s.phase !== ph) { if (ph) html += '</ol>'; ph = s.phase; html += `<div class="phase">${PH[ph]}</div><ol class="map">`; }
+    html += `<li><button type="button" data-goto="${s.id}" style="--c:${OWN[s.own].c}"><span class="n">${i + 1}</span><span class="t">${s.name}${s.branch ? ' <small>분기</small>' : ''}<small>${s.id} · ${OWN[s.own].label}</small></span></button></li>`;
+  });
+  $('#map').innerHTML = html + '</ol>';
+}
+function renderSummary() {
+  $('#sum-table').innerHTML = `<tr><th>#</th><th>화면</th><th>영역</th><th>처리 내용</th><th>주고받는 데이터</th><th>MOCA 확인</th></tr>` +
+    STEPS.map((s, i) => `<tr data-go="${s.id}"><td>${i + 1}</td><td><b>${s.id}</b><br>${s.name}</td><td><span class="tag tag--${s.own}">${OWN[s.own].label}</span></td>
+      <td>${s.panel.proc.join('<br>')}</td><td>${s.panel.data.map(([a, b]) => `${a}: ${b}`).join('<br>') || '-'}</td><td>${s.panel.ask.map(x => x.split('.')[0]).join(', ') || '-'}</td></tr>`).join('');
+}
+
+const $ = (q, el = document) => el.querySelector(q), $$ = (q, el = document) => [...el.querySelectorAll(q)];
+function bindConsent() {
+  const box = $('#consent'); if (!box) return;
+  const items = $$('[data-c]', box), all = $('[data-all]', box), btn = $('#btn-agree');
+  const sync = () => { const ok = items.every(c => c.checked); all.checked = ok; btn.disabled = !ok; };
+  items.forEach(c => { c.checked = S.agreed; c.onchange = sync; });
+  all.onchange = () => { items.forEach(c => { c.checked = all.checked; }); sync(); };
+  sync();
+}
+
+/* ===== 이벤트 ===== */
+document.addEventListener('click', e => {
+  const el = e.target.closest('[data-goto], [data-sdk], [data-login], [data-claim], [data-cancel], [data-confirm], [data-tab], [data-v], tr[data-go]');
+  if (!el) return;
+  const redraw = () => { const pg = $('#page'), top = pg.scrollTop; pg.innerHTML = STEPS[cur].screen(); pg.scrollTop = top; bindDock(); };
+  if (el.dataset.tab) { S.preview = el.dataset.tab; return redraw(); }      // S-01 등급 탭: 스크롤 위치 유지
+  if (el.dataset.v !== undefined) {                                          // S-04 쿠폰 탭 / 내 패키지의 View voucher
+    S.voucher = +el.dataset.v;
+    if (!el.dataset.goto) return redraw();
+  }
+  if (el.hasAttribute('data-claim')) { S.confirm = true; return renderOverlay(); }   // 받기 확인 시트 열기
+  if (el.hasAttribute('data-cancel')) { S.confirm = false; return renderOverlay(); }
+  if (el.hasAttribute('data-confirm')) {                                     // 지급 처리 → S-04 혜택 상세
+    S.issuing = true; renderOverlay();
+    return setTimeout(() => { S.claimed = true; S.voucher = 0; show('S-04'); }, 1000);
+  }
+  if (el.matches('tr[data-go]')) { $('#modal').hidden = true; return show(el.dataset.go); }
+  if (el.id === 'btn-agree') S.agreed = true;
+  if (el.dataset.goto) return show(el.dataset.goto);
+  if (el.hasAttribute('data-login')) {                         // SKP 로그인 후 분기
+    if (S.scn === 'returning') return show('S-03P');
+    return show(S.agreed ? 'S-VERIFY' : 'S-02');
+  }
+  if (el.dataset.sdk) {                                         // SDK 시트 내부 진행 (확인 → 처리 중 → 완료)
+    S.sdk = 1; $('#page').innerHTML = STEPS[cur].screen();
+    setTimeout(() => { S.sdk = 2; if (['A-ISSUE', 'S-VERIFY'].includes(STEPS[cur].id)) $('#page').innerHTML = STEPS[cur].screen(); }, 1100);
+  }
+});
+$('#prev').addEventListener('click', () => show(Math.max(0, cur - 1)));
+$('#next').addEventListener('click', () => show(Math.min(STEPS.length - 1, cur + 1)));
+$('#opt-tier').addEventListener('change', e => { S.tier = e.target.value; show(cur); });
+$$('input[name=scn]').forEach(r => r.addEventListener('change', e => {
+  S.scn = e.target.value; S.claimed = S.scn === 'returning'; S.agreed = S.scn === 'returning';
+  show(S.scn === 'normal' ? 'A-01' : 'S-01');
+}));
+$('#btn-summary').addEventListener('click', () => { renderSummary(); $('#modal').hidden = false; });
+$('#sum-close').addEventListener('click', () => { $('#modal').hidden = true; });
+$('#modal').addEventListener('click', e => { if (e.target.id === 'modal') $('#modal').hidden = true; });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') $('#modal').hidden = true;
+  if (e.target.matches('input, select')) return;
+  if (e.key === 'ArrowRight') $('#next').click();
+  if (e.key === 'ArrowLeft') $('#prev').click();
+});
+
+renderMap();
+show(0);
+</script>
+</body>
+</html>
