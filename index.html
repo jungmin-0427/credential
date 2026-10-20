@@ -642,9 +642,9 @@ const STEPS = [
       <button type="button" class="btn btn--line" data-goto="S-LOGIN">Try another account</button>
       <p class="fine" style="text-align:center">Need help? Contact us</p></div>`,
     panel: { who: 'SKP', where: 'SKP 페이지',
-      proc: ['SDK 실패 코드에 따라 안내 문구·버튼을 나눔', '미보유: AirAsia 생성 페이지(A-01)로 이동', '만료: 유효한 Credential 확인 안내 / holder 불일치: 같은 계정 로그인 안내 / 시스템 오류: 재시도'],
+      proc: ['SDK 실패 코드에 따라 안내 문구·버튼을 나눔', 'SKP는 Credential을 생성하지 않음 (생성은 AirAsia에서만 가능)', '미보유: AirAsia 프로모션 페이지(A-01)로 이동해 생성 후 다시 SKP로 돌아오도록 안내', '만료: 유효한 Credential 확인 안내 / holder 불일치: 같은 계정 로그인 안내 / 시스템 오류: 재시도'],
       data: [['SKP 내부', '검증 실패 일시·코드']],
-      ask: ['Q18. 실패 코드 구분 (위와 동일)', 'Q21. SKP 페이지 안에서 SDK로 바로 생성까지 처리할 수 있는지 (가능하면 A-01 이동 없이 처리)'] } },
+      ask: ['Q18. 실패 코드 구분 (위와 동일)'] } },
 
   { id: 'S-03', phase: 2, own: 'skp', name: '검증 결과 · 등급 확정', url: URL_SKP,
     screen: () => `${hdSKP()}<div class="p">
@@ -772,9 +772,9 @@ const EN = {
     data: [['AIR SDK → SKP', 'Verification result (success / failure code), tier'], ['Not shared', 'Full credential, name, member number, flight history']],
     ask: ['Q16. What SKP receives as the result: success only, or the tier value as well?', 'Q17. How SKP can confirm the result server-side (verification API · webhook · signed result) — key to preventing fraudulent claims', 'Q18. Failure code breakdown (not held / expired / revoked / holder mismatch / system error)', 'Q19. With several credentials, does the SDK or SKP pick the highest tier?', 'Q20. Verification session · fee policy (for the Phase 1 PoC)'] },
   'S-02E': { name: 'Verification failed (no credential)', who: 'SKP', where: 'SKP page',
-    proc: ['Message and buttons vary by SDK failure code', 'Not held: go to the AirAsia credential page (A-01)', 'Expired: check for a valid credential / holder mismatch: log in with the same account / system error: retry'],
+    proc: ['Message and buttons vary by SDK failure code', 'SKP does not create credentials (creation happens only at AirAsia)', 'Not held: guide the user to the AirAsia promotion page (A-01) to create one, then come back to SKP', 'Expired: check for a valid credential / holder mismatch: log in with the same account / system error: retry'],
     data: [['SKP internal', 'Failure time · code']],
-    ask: ['Q18. Failure code breakdown (same as above)', 'Q21. Can credential creation be done directly on the SKP page via the SDK (without going to A-01)?'] },
+    ask: ['Q18. Failure code breakdown (same as above)'] },
   'S-03': { name: 'Verification result · tier confirmed', who: 'SKP', where: 'SKP page',
     proc: ['Shows only the values received from SDK verification', 'Records participation and the applied tier (later tier changes are not reflected)'],
     data: [['SKP internal', 'AIR identifier, result · time, applied tier, participation status']],
