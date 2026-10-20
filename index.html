@@ -7,7 +7,7 @@
 <title>AIR Credential End-to-End Flow</title>
 <!--
   ==================== 안내 ====================
-  · 목적: MOCA와 전체 플로우(AirAsia 발급 → SKP 검증 → 혜택 지급·사용) 싱크용 프로토타입
+  · 목적: MOCA와 전체 플로우(AirAsia 생성 → SKP 검증 → 혜택 지급·사용) 싱크용 프로토타입
   · 기준: 정책서 v0.2 · 스토리보드 v0.6 · 캠페인 프로토타입 v0.2 · 팀 프로토타입(air-credential-prototype.vercel.app)
   · 화면 1개 = 아래 <script>의 STEPS 배열 항목 1개. 화면 문구(screen), 처리·데이터·확인 사항(panel)을 함께 관리한다.
   · 라벨: AirAsia 페이지 / AIR SDK 화면(MOCA 제공) / SKP 페이지. SDK 화면은 호스트 페이지 위 바텀시트로 표시한다.
@@ -279,7 +279,7 @@
     <div class="box scn">
       <h2>시나리오</h2>
       <label>AirAsia 회원 등급 <select id="opt-tier"><option value="black">Black</option><option value="platinum">Platinum</option><option value="gold" selected>Gold</option><option value="red">Red</option></select></label>
-      <label><input type="radio" name="scn" value="normal" checked> 정상 (발급 → 검증 → 지급)</label>
+      <label><input type="radio" name="scn" value="normal" checked> 정상 (생성 → 검증 → 지급)</label>
       <label><input type="radio" name="scn" value="nocred"> Credential 미보유로 SKP 진입</label>
       <label><input type="radio" name="scn" value="returning"> 재방문 (검증 완료 고객)</label>
       <p class="fine" style="margin-top:6px">시나리오를 바꾸면 처음 화면으로 돌아갑니다.</p>
@@ -482,7 +482,7 @@ const STEPS = [
       data: [['AIR SDK → AirAsia', 'AIR 계정 식별자']],
       ask: ['Q3. AirAsia 회원 로그인과 AIR 계정 연결 시점 (AirAsia 로그인 선행 필요 여부)', 'Q4. 로그인 수단 (Google · 이메일 외)'] } },
 
-  { id: 'A-ISSUE', phase: 1, own: 'sdk', host: 'aa', name: '등급 조회 · Credential 발급', url: URL_AA,
+  { id: 'A-ISSUE', phase: 1, own: 'sdk', host: 'aa', name: '등급 조회 · Credential 생성', url: URL_AA,
     screen: () => sdkSheet(pageA01(), S.sdk === 0
       ? `${sdkApp('aa')}<p class="sdk__t">Store your membership credential</p>
          <div class="sdk__row"><span>AirAsia membership tier</span><b>${T().name}</b></div>
@@ -495,11 +495,11 @@ const STEPS = [
          <p class="fine" style="text-align:center">${T().name} Membership Credential is in your AIR Wallet.</p>
          <button type="button" class="btn btn--sdk" data-goto="A-03">Done</button>`),
     panel: { who: 'AirAsia (Issuer) · MOCA', where: 'AirAsia 페이지 위 SDK 화면',
-      proc: ['AirAsia 서버가 회원 등급 조회', '등급 값으로 Credential 발급 요청 (Issuer: AirAsia)', 'MOCA 발급 인프라 → 고객 AIR Wallet 저장', 'SKP는 관여하지 않음 (발급 이력·명단 미수신)'],
+      proc: ['AirAsia 서버가 회원 등급 조회', '등급 값으로 Credential 생성 요청 (Issuer: AirAsia)', 'MOCA 생성 인프라 → 고객 AIR Wallet 저장', 'SKP는 관여하지 않음 (생성 이력·명단 미수신)'],
       data: [['AirAsia → AIR SDK', 'tier (Black/Platinum/Gold/Red), 유효기간'], ['AIR SDK → AIR Wallet', 'AirAsia Membership Credential']],
-      ask: ['Q5. Credential 스키마: 이름, attribute(tier enum, 유효기간 등), 등급 표기 값', 'Q6. 재발급·갱신 정책, 등급 변경 시 기존 Credential 폐기 여부', 'Q7. 한 계정에 여러 Credential이 쌓이는지 (SKP는 최고 등급 적용 정책)'] } },
+      ask: ['Q5. Credential 스키마: 이름, attribute(tier enum, 유효기간 등), 등급 표기 값', 'Q6. 재생성·갱신 정책, 등급 변경 시 기존 Credential 폐기 여부', 'Q7. 한 계정에 여러 Credential이 쌓이는지 (SKP는 최고 등급 적용 정책)'] } },
 
-  { id: 'A-03', phase: 1, own: 'aa', name: 'Credential 발급 완료', url: URL_AA,
+  { id: 'A-03', phase: 1, own: 'aa', name: 'Credential 생성 완료', url: URL_AA,
     screen: () => `${hdAA()}<div class="p" style="--c:var(--aa)">
       <span class="eyebrow">Credential ready</span><h1 class="h2">Your credential is ready</h1>
       ${vc(S.tier)}
@@ -507,7 +507,7 @@ const STEPS = [
       <p class="fine">We've also sent this link to you by email and SMS.</p>
       <p class="fine">SKP 제안 화면 · 실제 구현은 AirAsia</p></div>`,
     panel: { who: 'AirAsia', where: 'AirAsia 웹/앱 (SKP 제안안)',
-      proc: ['발급 완료 안내', 'SKP 프로모션 페이지로 이동 (다른 도메인)', '나중에 들어올 수 있도록 이메일·SMS로 링크 발송'],
+      proc: ['생성 완료 안내', 'SKP 프로모션 페이지로 이동 (다른 도메인)', '나중에 들어올 수 있도록 이메일·SMS로 링크 발송'],
       data: [['AirAsia → SKP', '링크 이동만 (유입 경로 파라미터 외 개인정보 전달 없음)']],
       ask: ['Q8. SKP 링크에 유입 경로(utm) 파라미터 부착 여부', 'Q9. 이메일·SMS 발송 주체와 시점'] } },
 
@@ -575,9 +575,9 @@ const STEPS = [
       <button type="button" class="btn btn--line" data-goto="S-LOGIN">Try another account</button>
       <p class="fine" style="text-align:center">Need help? Contact us</p></div>`,
     panel: { who: 'SKP', where: 'SKP 페이지',
-      proc: ['SDK 실패 코드에 따라 안내 문구·버튼을 나눔', '미보유: AirAsia 발급 페이지(A-01)로 이동', '만료: 유효한 Credential 확인 안내 / holder 불일치: 같은 계정 로그인 안내 / 시스템 오류: 재시도'],
+      proc: ['SDK 실패 코드에 따라 안내 문구·버튼을 나눔', '미보유: AirAsia 생성 페이지(A-01)로 이동', '만료: 유효한 Credential 확인 안내 / holder 불일치: 같은 계정 로그인 안내 / 시스템 오류: 재시도'],
       data: [['SKP 내부', '검증 실패 일시·코드']],
-      ask: ['Q18. 실패 코드 구분 (위와 동일)', 'Q21. SKP 페이지 안에서 SDK로 바로 발급까지 처리할 수 있는지 (가능하면 A-01 이동 없이 처리)'] } },
+      ask: ['Q18. 실패 코드 구분 (위와 동일)', 'Q21. SKP 페이지 안에서 SDK로 바로 생성까지 처리할 수 있는지 (가능하면 A-01 이동 없이 처리)'] } },
 
   { id: 'S-03', phase: 2, own: 'skp', name: '검증 결과 · 등급 확정', url: URL_SKP,
     screen: () => `${hdSKP()}<div class="p">
@@ -589,7 +589,7 @@ const STEPS = [
     panel: { who: 'SKP', where: 'SKP 페이지',
       proc: ['SDK 검증 결과로 받은 값만 표시', '참여·적용 등급 확정 기록 (이후 등급 변경 미반영)'],
       data: [['SKP 내부', 'AIR 식별자, 검증 결과·일시, 적용 등급, 참여 상태']],
-      ask: ['Q16. 화면에 표시할 attribute (발급일·유효기간 등)를 SDK가 SKP에 주는지'] } },
+      ask: ['Q16. 화면에 표시할 attribute (생성일·유효기간 등)를 SDK가 SKP에 주는지'] } },
 
   /* ---------- Phase 3 · 혜택 (SKP) ---------- */
   { id: 'S-03P', phase: 3, own: 'skp', name: '혜택 패키지 받기', url: URL_SKP,
@@ -631,7 +631,7 @@ const STEPS = [
       ask: [] } }
 ];
 const IDX = Object.fromEntries(STEPS.map((s, i) => [s.id, i]));
-const PH = { 1: 'Phase 1 · AirAsia 발급 (Issuer)', 2: 'Phase 2 · SKP 검증 (Verifier)', 3: 'Phase 3 · 혜택 지급 · 사용' };
+const PH = { 1: 'Phase 1 · AirAsia 생성 (Issuer)', 2: 'Phase 2 · SKP 검증 (Verifier)', 3: 'Phase 3 · 혜택 지급 · 사용' };
 
 /* ===== 렌더 ===== */
 let cur = 0;
