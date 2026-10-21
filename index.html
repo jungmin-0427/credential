@@ -661,9 +661,9 @@ const STEPS = [
            <p class="fine">All vouchers are issued together, right away. You can get this package only once, and it can't be changed or exchanged.</p>
            <div style="display:grid;grid-template-columns:1fr 2fr;gap:8px"><button type="button" class="btn btn--line" data-cancel>Cancel</button><button type="button" class="btn btn--skp" data-confirm>Get package</button></div>`}
       </div>`,
-    panel: { who: 'SKP · 기프티콘 (사내 연동)', where: 'SKP 페이지 → SKP 서버 → 기프티콘 API',
-      proc: ['[Get my package] → 받기 확인 시트 (SKP 화면): 구성·금액·1회 한정 안내', '[Get package] → SKP 서버: 참여 확정·기수령·상품(권종)별 발급 한도 확인 (하나라도 한도 초과면 지급 안 함)', '기프티콘 연동 API로 패키지 안 상품별 실시간 발급 (상품별 주문번호로 중복 발급 방지)', '응답받은 쿠폰번호·바코드·유효기간을 SKP DB에 저장, 한도 차감·Claimed 기록 → S-04 혜택 상세로 이동', '일부 상품만 발급된 경우 지급 완료로 처리하지 않고 실패분 재시도 → 계속 실패 시 운영자 재처리 (기프티콘 취소 API 확인 필요)', 'MOCA·AIR SDK 관여 없음'],
-      data: [['SKP → 기프티콘 (사내)', '주문번호, 상품코드 (개인정보 전달 여부 확인 필요)'], ['기프티콘 → SKP', '쿠폰번호·바코드·유효기간, 발급 결과'], ['SKP 내부', '패키지 코드, 발급 쿠폰, 지급 일시·상태']],
+    panel: { who: 'SKP', where: 'SKP 페이지',
+      proc: ['[Get my package] → 받기 확인 시트 (SKP 화면): 구성·금액·1회 한정 안내', '[Get package] → SKP 서버: 참여 확정·기수령·혜택별 잔여 수량 확인', '선매입 쿠폰을 패키지 단위로 한 번에 배정 (하나라도 부족하면 지급 안 함)', '지급 성공 시 수량 차감·Claimed 기록 → S-04 혜택 상세로 이동', 'MOCA·AIR SDK 관여 없음'],
+      data: [['SKP 내부', '패키지 코드, 배정 쿠폰, 지급 일시·상태']],
       ask: [] } },
 
   { id: 'S-04', phase: 3, own: 'skp', name: '혜택 상세 · 매장 사용', url: URL_SKP,
@@ -683,9 +683,9 @@ const STEPS = [
       <p class="fine" style="margin-top:-6px">Usage and balance are shown when available from the partner. <span style="color:var(--warn)">${t('api_note')}</span></p>
       <div class="card" style="font-size:12.5px;display:grid;gap:6px"><div><b>Where to use</b><br>${{ oy: 'Olive Young stores in Korea', gs: 'GS25 convenience stores in Korea', kfv: 'Korean Folk Village ticket office, Yongin' }[id]}</div><div><b>How to use</b><br>Show this barcode at the counter before you pay.</div></div>
     </div>`; },
-    panel: { who: 'SKP · 기프티콘 · 제휴 사용처', where: 'SKP 페이지 → 매장',
-      proc: ['패키지 지급 직후 자동 진입 (또는 내 패키지에서 View voucher)', '패키지 안 쿠폰을 11번과 같은 카드 목록으로 표시', '쿠폰을 누르면 그 쿠폰 하나의 상세 시트: 쿠폰번호·바코드·유효기간·사용처·이용 방법', '매장에서 바코드 제시 → 기프티콘·사용처가 사용 처리 (기프티콘 정산)', '유효기간은 발급일 기준 (기프티콘 상품 정책)', '사용 여부·잔액: 기프티콘 조회 API로 확인 가능한 경우에 표기 (조회 시점 함께 표시, 불가 시 미표기)'],
-      data: [['SKP → 고객', '쿠폰번호·바코드 (본인 로그인 시에만)'], ['기프티콘 → SKP', '사용 여부·잔액 (조회 API 지원 시)']],
+    panel: { who: 'SKP · 제휴 사용처', where: 'SKP 페이지 → 매장',
+      proc: ['패키지 지급 직후 자동 진입 (또는 내 패키지에서 View voucher)', '패키지 안 쿠폰을 11번과 같은 카드 목록으로 표시', '쿠폰을 누르면 그 쿠폰 하나의 상세 시트: 쿠폰번호·바코드·유효기간·사용처·이용 방법', '매장에서 바코드 제시 → 공급사가 사용 처리 (기존 정산)', '사용 여부·잔액: 공급사 API로 확인 가능한 경우에 표기 (조회 시점 함께 표시, 불가 시 미표기)'],
+      data: [['SKP → 고객', '쿠폰번호·바코드 (본인 로그인 시에만)'], ['공급사 → SKP', '사용 여부·잔액 (조회 API 지원 시)']],
       ask: [] } },
 
   /* ---------- 공통 · 고객 문의 (SKP) ---------- */
@@ -762,12 +762,12 @@ const EN = {
     proc: ['Shows only the values received from SDK verification', 'Records participation and the applied tier (later tier changes are not reflected)'],
     data: [['SKP internal', 'AIR identifier, result · time, applied tier, participation status']],
     ask: ['Q16. Does the SDK provide display attributes (creation date, validity, etc.) to SKP?'] },
-  'S-03P': { name: 'Get benefit package', who: 'SKP · Gifticon (in-house integration)', where: 'SKP page → SKP server → Gifticon API',
-    proc: ['[Get my package] → confirmation sheet (SKP screen): contents · value · one time only', '[Get package] → SKP server checks participation · prior claim · issuance limit per product (nothing is issued if any limit is reached)', 'Each product in the package is issued in real time via the Gifticon integration API (an order number per product prevents duplicate issuance)', 'Returned voucher code · barcode · validity are stored in the SKP DB, limits deducted, Claimed recorded → moves to S-04 benefit details', 'If only some products are issued, the package is not marked complete: failed items are retried, then handled by an operator (Gifticon cancel API to be confirmed)', 'No MOCA / AIR SDK involvement'],
-    data: [['SKP → Gifticon (in-house)', 'Order number, product code (whether personal data is required: to be confirmed)'], ['Gifticon → SKP', 'Voucher code · barcode · validity, issuance result'], ['SKP internal', 'Package code, issued vouchers, issue time · status']], ask: [] },
-  'S-04': { name: 'Benefit details · in-store use', who: 'SKP · Gifticon · partner stores', where: 'SKP page → store',
-    proc: ['Opens right after the package is issued (or via View voucher in My package)', 'Vouchers in the package are listed as cards, same as screen 11', 'Tap a voucher to open its own detail sheet: code · barcode · validity · where · how to use', 'Show the barcode in store → Gifticon and the store process redemption (Gifticon settlement)', 'Validity runs from the issue date (Gifticon product policy)', 'Usage · balance: shown when available via the Gifticon lookup API (with lookup time; hidden if unavailable)'],
-    data: [['SKP → customer', 'Voucher code · barcode (only when logged in)'], ['Gifticon → SKP', 'Usage · balance (if the lookup API is supported)']], ask: [] },
+  'S-03P': { name: 'Get benefit package', who: 'SKP', where: 'SKP page',
+    proc: ['[Get my package] → confirmation sheet (SKP screen): contents · value · one time only', '[Get package] → SKP server checks participation · prior claim · remaining stock per benefit', 'Pre-purchased vouchers are assigned as one package (nothing is issued if any is short)', 'On success: stock deducted and Claimed recorded → moves to S-04 benefit details', 'No MOCA / AIR SDK involvement'],
+    data: [['SKP internal', 'Package code, assigned vouchers, issue time · status']], ask: [] },
+  'S-04': { name: 'Benefit details · in-store use', who: 'SKP · partner stores', where: 'SKP page → store',
+    proc: ['Opens right after the package is issued (or via View voucher in My package)', 'Vouchers in the package are listed as cards, same as screen 11', 'Tap a voucher to open its own detail sheet: code · barcode · validity · where · how to use', 'Show the barcode in store → the partner processes redemption (existing settlement)', 'Usage · balance: shown when available via partner API (with lookup time; hidden if unavailable)'],
+    data: [['SKP → customer', 'Voucher code · barcode (only when logged in)'], ['Partner → SKP', 'Usage · balance (if the lookup API is supported)']], ask: [] },
   'S-05': { name: 'Customer inquiry (Help)', who: 'SKP (customer service · Admin)', where: '? icon in the top bar of every SKP screen → bottom sheet',
     proc: ['? icon in the top bar → opens the inquiry form directly (asks to log in first if not logged in)', 'Only logged-in users can submit; participation · verification · issuance history is linked by AIR identifier', 'Board style: only topic + message are entered (no email collected; users are told not to put personal data in the message)', 'Replies are not emailed: the operator posts a reply in Admin and the customer checks it in "My inquiries" (Received → Answered)', 'With no reply notification, the expected reply time is shown (N business days · TBD)'],
     data: [['Customer → SKP', 'Topic · message (+ AIR identifier linked automatically)'], ['SKP Admin → customer', 'Reply (in-service board)']], ask: [] }
