@@ -662,7 +662,7 @@ const STEPS = [
            <div style="display:grid;grid-template-columns:1fr 2fr;gap:8px"><button type="button" class="btn btn--line" data-cancel>Cancel</button><button type="button" class="btn btn--skp" data-confirm>Get package</button></div>`}
       </div>`,
     panel: { who: 'SKP', where: 'SKP 페이지',
-      proc: ['[Get my package] → 받기 확인 시트 (SKP 화면): 구성·금액·1회 한정 안내', '[Get package] → SKP 서버: 참여 확정·기수령·혜택별 잔여 수량 확인', '선매입 쿠폰을 패키지 단위로 한 번에 배정 (하나라도 부족하면 지급 안 함)', '지급 성공 시 수량 차감·Claimed 기록 → S-04 혜택 상세로 이동', 'MOCA·AIR SDK 관여 없음'],
+      proc: ['[Get my package] → 받기 확인 시트 (SKP 화면): 구성·금액·1회 한정 안내', '[Get package] → SKP 서버: 참여 확정·기수령·혜택별 잔여 수량 확인', '기프티콘 API 연동으로 패키지 단위 쿠폰 지급 (하나라도 부족하면 지급 안 함)', '지급 성공 시 수량 차감·Claimed 기록 → S-04 혜택 상세로 이동', 'MOCA·AIR SDK 관여 없음'],
       data: [['SKP 내부', '패키지 코드, 배정 쿠폰, 지급 일시·상태']],
       ask: [] } },
 
@@ -763,7 +763,7 @@ const EN = {
     data: [['SKP internal', 'AIR identifier, result · time, applied tier, participation status']],
     ask: ['Q16. Does the SDK provide display attributes (creation date, validity, etc.) to SKP?'] },
   'S-03P': { name: 'Get benefit package', who: 'SKP', where: 'SKP page',
-    proc: ['[Get my package] → confirmation sheet (SKP screen): contents · value · one time only', '[Get package] → SKP server checks participation · prior claim · remaining stock per benefit', 'Pre-purchased vouchers are assigned as one package (nothing is issued if any is short)', 'On success: stock deducted and Claimed recorded → moves to S-04 benefit details', 'No MOCA / AIR SDK involvement'],
+    proc: ['[Get my package] → confirmation sheet (SKP screen): contents · value · one time only', '[Get package] → SKP server checks participation · prior claim · remaining stock per benefit', 'Vouchers are issued as one package via the Gifticon API integration (nothing is issued if any is short)', 'On success: stock deducted and Claimed recorded → moves to S-04 benefit details', 'No MOCA / AIR SDK involvement'],
     data: [['SKP internal', 'Package code, assigned vouchers, issue time · status']], ask: [] },
   'S-04': { name: 'Benefit details · in-store use', who: 'SKP · partner stores', where: 'SKP page → store',
     proc: ['Opens right after the package is issued (or via View voucher in My package)', 'Vouchers in the package are listed as cards, same as screen 11', 'Tap a voucher to open its own detail sheet: code · barcode · validity · where · how to use', 'Show the barcode in store → the partner processes redemption (existing settlement)', 'Usage · balance: shown when available via partner API (with lookup time; hidden if unavailable)'],
