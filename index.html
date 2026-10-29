@@ -500,7 +500,7 @@ const pageS01 = () => { const pv = TIERS[S.preview || 'black']; return `${hdSKP(
   <div style="padding:0 20px 20px"><div class="card s01-notes"><b>ⓘ Please note</b><ul>
     <li>Limited quantities. If any voucher in a package runs out, that package can no longer be issued.</li>
     <li>One package per member. All vouchers are issued together.</li>
-    <li>If you hold several AirAsia credentials, the highest valid tier applies.</li>
+    <li>Only one valid AirAsia credential is kept per account. Your latest valid credential is checked.</li>
     <li>Vouchers cannot be exchanged for cash.</li></ul></div></div>
   <footer class="s01-foot"><b>OK Cashbag × AirAsia</b><br>Operated by SK planet Co., Ltd. · Terms · Privacy Policy<br>Prototype for review. Copy and benefits are examples.</footer>
   <div class="s01-dock is-hidden"><button type="button" class="btn btn--skp" data-goto="S-LOGIN">Log in with AIR</button></div>`; };
@@ -545,9 +545,9 @@ const STEPS = [
          <p class="fine" style="text-align:center">${T().name} Membership Credential is in your AIR Wallet.</p>
          <button type="button" class="btn btn--sdk" data-goto="A-03">Done</button>`),
     panel: { who: 'AirAsia (Issuer) · MOCA', where: 'AirAsia 페이지 위 SDK 화면',
-      proc: ['AirAsia 서버가 회원 등급 조회', '등급 값으로 Credential 생성 요청 (Issuer: AirAsia)', 'MOCA 생성 인프라 → 고객 AIR Wallet 저장', 'SKP는 관여하지 않음 (생성 이력·명단 미수신)'],
+      proc: ['AirAsia 서버가 회원 등급 조회', '등급 값으로 Credential 생성 요청 (Issuer: AirAsia)', 'MOCA 생성 인프라 → 고객 AIR Wallet 저장', '계정당 유효 Credential 1개만 유지 (만료분은 남을 수 있음 · Q7 확인)', 'SKP는 관여하지 않음 (생성 이력·명단 미수신)'],
       data: [['AirAsia → AIR SDK', 'tier (Black/Platinum/Gold/Red), 유효기간'], ['AIR SDK → AIR Wallet', 'AirAsia Membership Credential']],
-      ask: ['Q5. Credential 스키마: 이름, attribute(tier enum, 유효기간 등), 등급 표기 값', 'Q6. 재생성·갱신 정책, 등급 변경 시 기존 Credential 폐기 여부', 'Q7. 한 계정에 여러 Credential이 쌓이는지 (SKP는 최고 등급 적용 정책)'] } },
+      ask: ['Q5. Credential 스키마: 이름, attribute(tier enum, 유효기간 등), 등급 표기 값', 'Q6. 재생성·갱신 정책, 등급 변경 시 기존 Credential 폐기 여부'] } },
 
   { id: 'A-03', phase: 1, own: 'aa', name: 'Credential 생성 완료', url: URL_AA,
     screen: () => `${hdAA()}<div class="p" style="--c:var(--aa)">
@@ -612,9 +612,9 @@ const STEPS = [
       : `<div class="okmark"><svg class="i"><use href="#i-check"/></svg></div><p class="sdk__t" style="text-align:center">Verified</p>
          <button type="button" class="btn btn--sdk" data-goto="S-03">Continue</button>`),
     panel: { who: 'MOCA (AIR SDK) → SKP', where: 'SKP 페이지 위 SDK 화면',
-      proc: ['SKP Verification Program 조건으로 검증 (issuer = AirAsia, tier, 유효·미폐기, holder 일치)', '여러 Credential 보유 시 최고 등급 적용', '결과를 SKP 서버가 다시 확인한 뒤 참여·등급 확정 (검증 성공 = 참여 확정)', '실패 시 사유별 안내 화면(S-02E)'],
-      data: [['AIR SDK → SKP', '검증 결과(성공/실패 코드), tier'], ['전달하지 않음', 'Credential 원문, 이름, 회원번호, 탑승 이력']],
-      ask: ['Q16. 검증 결과로 SKP가 받는 값: 성공 여부만인지, tier 값까지인지', 'Q17. 서버 측 검증 확인 방법 (검증 API · 웹훅 · 서명된 결과) — 부정 수령 방지 핵심', 'Q18. 실패 오류 코드 구분 (미보유 / 만료 / 폐기 / holder 불일치 / 시스템 오류)', 'Q19. 복수 Credential일 때 최고 등급 선택을 SDK가 하는지, SKP가 하는지', 'Q20. 검증 세션·수수료 정책 (Phase 1 PoC 기준)'] } },
+      proc: ['SKP Verification Program 조건으로 검증 (issuer = AirAsia, tier, 유효·미폐기, holder 일치)', 'SDK가 가장 최근 발급된 유효 Credential을 기본 선택 (계정당 유효 1개 · Q7·Q19 확인)', '검증 결과값은 tier만 받음 (Q16 확인)', '제출된 결과를 SKP 서버가 자체 검증한 뒤 참여·등급 확정 (서버 검증 성공 = 참여 확정)', '결과 코드: Compliant / Non-Compliant / NotFound → 실패 시 사유별 안내 화면(S-02E)'],
+      data: [['AIR SDK → SKP', '검증 결과 코드, tier'], ['SKP → MOCA', '없음 (SKP 서버 자체 검증)'], ['전달하지 않음', 'Credential 원문, 이름, 회원번호, 탑승 이력']],
+      ask: ['Q20. 검증 세션·수수료 정책 (Phase 1 PoC 기준)'] } },
 
   { id: 'S-02E', phase: 2, own: 'skp', name: '검증 실패 (미보유)', url: URL_SKP, branch: true,
     screen: () => `${hdSKP()}<div class="p">
@@ -625,9 +625,9 @@ const STEPS = [
       <button type="button" class="btn btn--line" data-goto="S-LOGIN">Try another account</button>
       <p class="fine" style="text-align:center">Need help? Contact us</p></div>`,
     panel: { who: 'SKP', where: 'SKP 페이지',
-      proc: ['SDK 실패 코드에 따라 안내 문구·버튼을 나눔', 'SKP는 Credential을 생성하지 않음 (생성은 AirAsia에서만 가능)', '미보유: AirAsia 프로모션 페이지(A-01)로 이동해 생성 후 다시 SKP로 돌아오도록 안내', '만료: 유효한 Credential 확인 안내 / holder 불일치: 같은 계정 로그인 안내 / 시스템 오류: 재시도'],
-      data: [['SKP 내부', '검증 실패 일시·코드']],
-      ask: ['Q18. 실패 코드 구분 (위와 동일)'] } },
+      proc: ['결과 코드에 따라 안내 문구·버튼을 나눔 (Q18 확인)', 'SKP는 Credential을 생성하지 않음 (생성은 AirAsia에서만 가능)', 'NotFound (미보유): AirAsia 프로모션 페이지(A-01)로 이동해 생성 후 다시 SKP로 돌아오도록 안내', 'Non-Compliant (만료 등 조건 미충족): 유효한 Credential 확인 안내 · AirAsia 페이지 이동', '고객 취소 · 네트워크 오류: 재시도 허용 / SKP 서버 검증 실패: 재시도 안내, 혜택 지급 안 함'],
+      data: [['SKP 내부', '검증 실패 일시·결과 코드']],
+      ask: [] } },
 
   { id: 'S-03', phase: 2, own: 'skp', name: '검증 결과 · 등급 확정', url: URL_SKP,
     screen: () => `${hdSKP()}<div class="p">
@@ -637,9 +637,9 @@ const STEPS = [
       <div class="alert"><svg class="i"><use href="#i-info"/></svg>Your tier is now fixed for this promotion.</div>
       <button type="button" class="btn btn--skp" data-goto="S-03P">See my ${T().name} package →</button></div>`,
     panel: { who: 'SKP', where: 'SKP 페이지',
-      proc: ['SDK 검증 결과로 받은 값만 표시', '참여·적용 등급 확정 기록 (이후 등급 변경 미반영)'],
+      proc: ['SDK 검증 결과로 받은 값(tier)만 표시', '참여·적용 등급 확정 기록 (최초 검증 성공 시점 · 이후 등급 변경 미반영)'],
       data: [['SKP 내부', 'AIR 식별자, 검증 결과·일시, 적용 등급, 참여 상태']],
-      ask: ['Q16. 화면에 표시할 attribute (생성일·유효기간 등)를 SDK가 SKP에 주는지'] } },
+      ask: [] } },
 
   /* ---------- Phase 3 · 혜택 (SKP) ---------- */
   { id: 'S-03P', phase: 3, own: 'skp', name: '혜택 패키지 받기', url: URL_SKP,
@@ -732,9 +732,9 @@ const EN = {
     data: [['AIR SDK → AirAsia', 'AIR account identifier']],
     ask: ['Q3. When the AirAsia member login is linked to the AIR account (is an AirAsia login required first?)', 'Q4. Supported login methods (besides Google · email)'] },
   'A-ISSUE': { name: 'Tier lookup · credential creation', who: 'AirAsia (Issuer) · MOCA', where: 'SDK screen over the AirAsia page',
-    proc: ['AirAsia server looks up the member tier', 'Requests credential creation with the tier value (Issuer: AirAsia)', 'MOCA creation infrastructure → stored in the customer\'s AIR Wallet', 'SKP is not involved (receives no creation history or member list)'],
+    proc: ['AirAsia server looks up the member tier', 'Requests credential creation with the tier value (Issuer: AirAsia)', 'MOCA creation infrastructure → stored in the customer\'s AIR Wallet', 'Only one valid credential is kept per account (expired ones may remain · confirmed in Q7)', 'SKP is not involved (receives no creation history or member list)'],
     data: [['AirAsia → AIR SDK', 'tier (Black/Platinum/Gold/Red), validity period'], ['AIR SDK → AIR Wallet', 'AirAsia Membership Credential']],
-    ask: ['Q5. Credential schema: name, attributes (tier enum, validity, etc.) and tier values', 'Q6. Re-creation / renewal policy; whether existing credentials are revoked when the tier changes', 'Q7. Whether several credentials can accumulate in one account (SKP applies the highest tier)'] },
+    ask: ['Q5. Credential schema: name, attributes (tier enum, validity, etc.) and tier values', 'Q6. Re-creation / renewal policy; whether existing credentials are revoked when the tier changes'] },
   'A-03': { name: 'Credential created', who: 'AirAsia', where: 'AirAsia web/app (SKP proposal)',
     proc: ['Creation complete message', 'Moves to the SKP promotion page (different domain)', 'Sends the link by email · SMS for later access'],
     data: [['AirAsia → SKP', 'Link only (no personal data beyond referral parameters)']],
@@ -751,17 +751,17 @@ const EN = {
     data: [['SKP internal', 'Consent items · version · time']],
     ask: ['Q14. Does the SDK verification screen have its own approval (Allow) step? If it overlaps with SKP consent, how can they be merged?', 'Q15. Input for the cross-border transfer review: location and operator of the AIR Identity · Wallet · verification servers, and data exchanged between SKP and AIR'] },
   'S-VERIFY': { name: 'Credential verification', who: 'MOCA (AIR SDK) → SKP', where: 'SDK screen over the SKP page',
-    proc: ['Verified against the SKP Verification Program (issuer = AirAsia, tier, valid · not revoked, holder match)', 'Highest tier applies when several credentials are held', 'SKP server re-checks the result, then fixes participation and tier (verification success = participation confirmed)', 'On failure: reason-specific guidance screen (S-02E)'],
-    data: [['AIR SDK → SKP', 'Verification result (success / failure code), tier'], ['Not shared', 'Full credential, name, member number, flight history']],
-    ask: ['Q16. What SKP receives as the result: success only, or the tier value as well?', 'Q17. How SKP can confirm the result server-side (verification API · webhook · signed result) — key to preventing fraudulent claims', 'Q18. Failure code breakdown (not held / expired / revoked / holder mismatch / system error)', 'Q19. With several credentials, does the SDK or SKP pick the highest tier?', 'Q20. Verification session · fee policy (for the Phase 1 PoC)'] },
+    proc: ['Verified against the SKP Verification Program (issuer = AirAsia, tier, valid · not revoked, holder match)', 'The SDK picks the most recently issued valid credential by default (one valid per account · confirmed in Q7 · Q19)', 'SKP receives only the tier as the result value (confirmed in Q16)', 'SKP server verifies the submitted result itself, then fixes participation and tier (server verification success = participation confirmed)', 'Result codes: Compliant / Non-Compliant / NotFound → on failure, reason-specific guidance screen (S-02E)'],
+    data: [['AIR SDK → SKP', 'Result code, tier'], ['SKP → MOCA', 'None (verified by the SKP server itself)'], ['Not shared', 'Full credential, name, member number, flight history']],
+    ask: ['Q20. Verification session · fee policy (for the Phase 1 PoC)'] },
   'S-02E': { name: 'Verification failed (no credential)', who: 'SKP', where: 'SKP page',
-    proc: ['Message and buttons vary by SDK failure code', 'SKP does not create credentials (creation happens only at AirAsia)', 'Not held: guide the user to the AirAsia promotion page (A-01) to create one, then come back to SKP', 'Expired: check for a valid credential / holder mismatch: log in with the same account / system error: retry'],
-    data: [['SKP internal', 'Failure time · code']],
-    ask: ['Q18. Failure code breakdown (same as above)'] },
+    proc: ['Message and buttons vary by result code (confirmed in Q18)', 'SKP does not create credentials (creation happens only at AirAsia)', 'NotFound (not held): guide the user to the AirAsia promotion page (A-01) to create one, then come back to SKP', 'Non-Compliant (expired or conditions not met): ask the user to check for a valid credential · link to the AirAsia page', 'User cancel · network error: allow retry / SKP server verification failure: ask to retry, no benefit issued'],
+    data: [['SKP internal', 'Failure time · result code']],
+    ask: [] },
   'S-03': { name: 'Verification result · tier confirmed', who: 'SKP', where: 'SKP page',
-    proc: ['Shows only the values received from SDK verification', 'Records participation and the applied tier (later tier changes are not reflected)'],
+    proc: ['Shows only the value received from SDK verification (tier)', 'Records participation and the applied tier (fixed at the first successful verification · later tier changes are not reflected)'],
     data: [['SKP internal', 'AIR identifier, result · time, applied tier, participation status']],
-    ask: ['Q16. Does the SDK provide display attributes (creation date, validity, etc.) to SKP?'] },
+    ask: [] },
   'S-03P': { name: 'Get benefit package', who: 'SKP', where: 'SKP page',
     proc: ['[Get my package] → confirmation sheet (SKP screen): contents · value · one time only', '[Get package] → SKP server checks participation · prior claim · remaining stock per benefit', 'Vouchers are issued as one package via the Gifticon API integration (nothing is issued if any is short)', 'On success: stock deducted and Claimed recorded → moves to S-04 benefit details', 'No MOCA / AIR SDK involvement'],
     data: [['SKP internal', 'Package code, assigned vouchers, issue time · status']], ask: [] },
