@@ -124,10 +124,7 @@
   .vc__ey { margin-top: auto; font-size: 9.5px; font-weight: 800; letter-spacing: .12em; opacity: .75; }
   .vc__t { margin: 3px 0 6px; font-size: 18px; font-weight: 600; }
   .vc__m { font-size: 9px; font-weight: 700; letter-spacing: .14em; opacity: .7; line-height: 1.8; }
-  [data-tier="black"]    { --bgc: linear-gradient(135deg, #34343C, #0D0D12 70%); --fg: #fff; }
-  [data-tier="platinum"] { --bgc: linear-gradient(135deg, #F3F5F8, #AEB7C2 85%); --fg: #1E2533; }
-  [data-tier="gold"]     { --bgc: linear-gradient(135deg, #FBE3A0, #D7A53A 85%); --fg: #3A2800; }
-  [data-tier="red"]      { --bgc: linear-gradient(135deg, #FF6B6E, #D11A2A 85%); --fg: #fff; }
+  [data-tier="member"]   { --bgc: linear-gradient(135deg, #FF6B6E, #D11A2A 85%); --fg: #fff; }   /* AirAsia Rewards 회원 Credential (등급 구분 없음) */
 
   /* 티켓 */
   .tickets { display: grid; gap: 8px; }
@@ -301,7 +298,6 @@
     <div class="box"><h2>JOURNEY MAP</h2><div id="map"></div></div>
     <div class="box scn">
       <h2 data-i18n="scn">시나리오</h2>
-      <label><span data-i18n="tier">AirAsia 회원 등급</span> <select id="opt-tier"><option value="black">Black</option><option value="platinum">Platinum</option><option value="gold" selected>Gold</option><option value="red">Red</option></select></label>
       <label><input type="radio" name="scn" value="normal" checked> <span data-i18n="scn_normal">정상 (생성 → 검증 → 지급)</span></label>
       <label><input type="radio" name="scn" value="nocred"> <span data-i18n="scn_nocred">Credential 미보유로 SKP 진입</span></label>
       <label><input type="radio" name="scn" value="returning"> <span data-i18n="scn_ret">재방문 (검증 완료 고객)</span></label>
@@ -332,14 +328,9 @@
 </div></div>
 
 <script>
-/* ===== 데이터: 정책서 v0.2 보상 예시안 ===== */
-const TIERS = {
-  black:    { name: 'Black',    pkg: 'Korea Premium Experience', total: 30000, items: [['kfv', 'Free admission', '1 ticket'], ['oy', 'Mobile voucher', '₩10,000']] },
-  platinum: { name: 'Platinum', pkg: 'Korea Traveler Package',   total: 15000, items: [['kfv', 'Admission discount', '₩10,000 off'], ['oy', 'Mobile voucher', '₩5,000']] },
-  gold:     { name: 'Gold',     pkg: 'Korea Welcome Gift',       total: 7000,  items: [['oy', 'Mobile voucher', '₩4,000'], ['gs', 'Mobile voucher', '₩3,000']] },
-  red:      { name: 'Red',      pkg: 'Korea Hello Gift',         total: 4000,  items: [['gs', 'Mobile voucher', '₩4,000']] }
-};
-const BR = { oy: ['Olive Young', 'var(--oy)', 'BEAUTY'], gs: ['GS25', 'var(--gs)', 'STORE'], kfv: ['Korean Folk Village', 'var(--kfv)', 'ATTRACTION'] };
+/* ===== 데이터: 정책서 2.5 — 등급 구분 없이 AirAsia Rewards 회원에게 쿠폰 1종 (제휴사·금액 TBD) ===== */
+const OFFER = { name: 'AirAsia Rewards', pkg: 'Korea Welcome Voucher', value: 'TBD', items: [['tbd', 'Mobile voucher', 'TBD']] };
+const BR = { tbd: ['Partner (TBD)', 'var(--skp)', 'VOUCHER'], oy: ['Olive Young', 'var(--oy)', 'BEAUTY'], gs: ['GS25', 'var(--gs)', 'STORE'], kfv: ['Korean Folk Village', 'var(--kfv)', 'ATTRACTION'] };
 const OWN = {
   aa:  { label: 'AirAsia 페이지', c: 'var(--aa)' },
   sdk: { label: 'AIR SDK 화면 · MOCA 제공', c: 'var(--sdk)' },
@@ -350,21 +341,21 @@ const AA_EMAIL = 'mi***@example.com';   // AirAsia 가입 이메일 (예시, 마
 const won = n => '₩' + n.toLocaleString('en-US');
 const today = () => new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 
-const S = { tier: 'gold', scn: 'normal', claimed: false, agreed: false, verified: false, loggedIn: false, sdk: 0, help: null, inq: [], afterLogin: null }; // sdk: 시트 내부 단계 · help: 문의 시트 상태
-const T = () => TIERS[S.tier];
+const S = { scn: 'normal', claimed: false, agreed: false, verified: false, loggedIn: false, sdk: 0, help: null, inq: [], afterLogin: null }; // sdk: 시트 내부 단계 · help: 문의 시트 상태
+const T = () => OFFER;
 
 /* ===== 화면 조각 ===== */
 const hdAA = () => `<div class="hd hd--aa"><span class="wm-aa">airasia</span><span style="font-size:12px;font-weight:700">MEMBERS</span></div>`;
 const hdSKP = () => `<div class="hd hd--skp"><span class="wm-skp"><i>OK</i>OK Cashbag</span><span class="hd-r"><span class="chip">EN</span><button type="button" class="hd-help" data-help aria-label="Help">?</button></span></div>`;
 
 /* 문의(Help) 바텀시트: 모든 SKP 화면 상단 ? 아이콘에서 열림. 로그인 상태에서만 등록, 답변은 시트 안에서 확인 */
-const TOPICS = ['Verification / membership tier', 'Participation eligibility', 'Package / benefits', 'Voucher / how to use', 'Technical issue / other'];
+const TOPICS = ['Verification / membership', 'Participation eligibility', 'Getting the voucher', 'Using the voucher', 'Technical issue / other'];
 const ST = { received: ['Received', 'st--received'], answered: ['Answered', 'st--answered'] };
 const helpSheet = () => {
   const head = (title) => `<div style="display:flex;justify-content:space-between;align-items:center"><span class="eyebrow">Help</span><button type="button" class="btn btn--line" style="width:auto;min-height:32px;padding:0 12px" data-help-close>Close</button></div><p class="sdk__t">${title}</p>`;
   if (!S.loggedIn) return `${head('Log in to contact us')}
     <p class="lead" style="font-size:13px">We use your AIR login to find your promotion history.</p>
-    <button type="button" class="btn btn--skp" data-help-login>Log in with AIR</button>`;
+    <button type="button" class="btn btn--skp" data-help-login>Log in with AirAsia account</button>`;
   if (S.help === 'form') return `${head('How can we help?')}
     <p class="lead" style="font-size:13px">Choose a topic and tell us what happened. Your membership and benefit history are linked automatically.</p>
     ${S.inq.length ? `<button type="button" class="s01-myv" style="margin:0;text-align:left;padding:0" data-help-home><b>View my inquiries (${S.inq.length}) →</b></button>` : ''}
@@ -381,8 +372,8 @@ const helpSheet = () => {
       : '<p class="fine" style="text-align:center;padding:14px;border:1.5px dashed var(--line);border-radius:12px">Your inquiries and replies will appear here.</p>'}
     <button type="button" class="btn btn--line" data-help-new>New inquiry</button>`;
 };
-const vc = (tier, st = 'Valid') => `<div class="vc" data-tier="${tier}"><div class="vc__top"><span class="vc__logo">air.</span><span class="vc__st">${st}</span></div>
-  <div class="vc__ey">AIRASIA MEMBERSHIP · CREDENTIAL</div><div class="vc__t">${TIERS[tier].name} Membership Credential</div><div class="vc__m">ISSUER · AIRASIA<br>ISSUED: ${today().toUpperCase()}</div></div>`;
+const vc = (st = 'Valid') => `<div class="vc" data-tier="member"><div class="vc__top"><span class="vc__logo">air.</span><span class="vc__st">${st}</span></div>
+  <div class="vc__ey">AIRASIA REWARDS · CREDENTIAL</div><div class="vc__t">AirAsia Rewards Member</div><div class="vc__m">ISSUER · AIRASIA<br>ISSUED: ${today().toUpperCase()}</div></div>`;
 const ticket = ([id, title, value], open, idx = 0) => `<div class="ticket" style="--brand:${BR[id][1]}"><div class="ticket__stub">${BR[id][2]}</div>
   <div class="ticket__body"><small>${BR[id][0]}</small><b>${value}</b><span>${title}</span>${open ? `<button type="button" class="open" data-goto="S-04" data-v="${idx}">View voucher →</button>` : ''}</div></div>`;
 const sdkSheet = (host, inner) => `<div class="host">${host}</div><div class="dim"></div><div class="sdk">${inner}<p class="sdk__pw">Powered by <b>AIR</b> · MOCA Network</p></div>`;
@@ -393,10 +384,10 @@ const sdkApp = (who) => who === 'aa'
 /* AirAsia · SKP 호스트 페이지 (SDK 시트 배경으로도 사용) */
 const pageA01 = () => `${hdAA()}<div class="p" style="--c:var(--aa)">
   <span class="eyebrow">Korea benefits for members</span>
-  <h1 class="h1">Flying to Korea?<br>Your tier unlocks extras.</h1>
-  <p class="lead">Get your AirAsia Membership Credential, then claim a Korea benefit package on OK Cashbag.</p>
-  <div class="chips"><span class="chip">Black</span><span class="chip">Platinum</span><span class="chip">Gold</span><span class="chip">Red</span></div>
-  <ol class="steps"><li><span><b>Get your credential here</b>We issue it to your AirAsia account email. No sign-up needed.</span></li><li><span><b>Claim on OK Cashbag</b>Log in with the same email, verify, and get your package in Korea.</span></li></ol>
+  <h1 class="h1">Flying to Korea?<br>Members get a welcome gift.</h1>
+  <p class="lead">Get your AirAsia Rewards Credential, then claim a Korea welcome voucher on OK Cashbag.</p>
+  <div class="chips"><span class="chip">For all AirAsia Rewards members</span></div>
+  <ol class="steps"><li><span><b>Get your credential here</b>We issue it to your AirAsia account email. No sign-up needed.</span></li><li><span><b>Claim on OK Cashbag</b>Log in with the same email, verify, and get your voucher in Korea.</span></li></ol>
   <button type="button" class="btn btn--aa" data-goto="A-AUTH">Get Korea benefits</button>
   <p class="fine">${t('aa_note')}</p></div>`;
 /* A-AUTH 이메일 인증 블록: 코드 발송 전 → 코드 입력 → 인증 완료 (S.otp) */
@@ -442,77 +433,75 @@ const SEOUL_SVG = `<svg class="seoul" viewBox="0 0 360 210" role="img" aria-labe
   <g transform="translate(30 150)"><rect x="9" y="22" width="4" height="16" fill="#7A5A3E"/><path d="M11 0 L24 18 H-2Z M11 8 L26 28 H-4Z" fill="#3F7D4E"/></g>
   <g transform="translate(316 152)"><rect x="9" y="20" width="4" height="16" fill="#7A5A3E"/><path d="M11 0 L22 16 H0Z M11 7 L24 26 H-2Z" fill="#3F7D4E"/></g>
 </svg>`;
-const pageS01 = () => { const pv = TIERS[S.preview || 'black']; return `${hdSKP()}
+const pageS01 = () => { const pv = T(); return `${hdSKP()}
   <section class="s01-hero">
-    <div class="chips"><span class="chip">✈ For AirAsia members</span><span class="chip">🇰🇷 Korea only</span></div>
+    <div class="chips"><span class="chip">✈ For AirAsia Rewards members</span><span class="chip">🇰🇷 Korea only</span></div>
     <h1 class="h1" style="margin-top:12px">Your Korea<br>benefits are <em>waiting</em></h1>
-    <p class="lead" style="margin-top:8px">Verify your AirAsia membership and get a Korea benefit package for Olive Young, GS25 and more.</p>
+    <p class="lead" style="margin-top:8px">Verify your AirAsia Rewards membership and get a Korea welcome voucher.</p>
     <div class="s01-visual">${SEOUL_SVG}
       <span class="sticker sticker--a">HELLO<br>KOREA!</span>
       <span class="chip float f1" style="color:var(--oy)">● Olive Young</span>
       <span class="chip float f2" style="color:var(--kfv)">● Folk Village</span>
       <span class="chip float f3" style="color:var(--gs)">● GS25</span>
     </div>
-    <button type="button" class="btn btn--skp s01-cta" data-goto="S-LOGIN">Log in with AIR</button>
-    <button type="button" class="s01-myv" data-myv>Already got your package? <b>View my vouchers →</b></button>
+    <button type="button" class="btn btn--skp s01-cta" data-goto="S-LOGIN">Log in with AirAsia account</button>
+    <p class="fine" style="margin-top:6px;text-align:center">Use the same email as your AirAsia account.</p>
+    <button type="button" class="s01-myv" data-myv>Already got your voucher? <b>View my voucher →</b></button>
     <p class="s01-period">🗓 Event period <b>2027.01.01 – 2027.03.31</b> · while supplies last</p>
   </section>
 
   <section class="s01-sec">
     <div class="s01-head"><span class="s01-num">HOW IT WORKS</span><h2 class="h2">3 steps to your benefits</h2></div>
     <ol class="s01-steps">
-      <li><i>👤</i><div><small>STEP 1</small><b>Log in</b><p>Log in to AIR with your AirAsia account email.</p></div></li>
-      <li><i>🛡</i><div><small>STEP 2</small><b>Share your credential</b><p>We check your membership tier. Nothing else.</p></div></li>
-      <li><i>🎁</i><div><small>STEP 3</small><b>Get your package</b><p>All vouchers for your tier, issued at once.</p></div></li>
+      <li><i>👤</i><div><small>STEP 1</small><b>Log in</b><p>Log in with your AirAsia account email.</p></div></li>
+      <li><i>🛡</i><div><small>STEP 2</small><b>Share your credential</b><p>We check that you're an AirAsia Rewards member. Nothing else.</p></div></li>
+      <li><i>🎁</i><div><small>STEP 3</small><b>Get your voucher</b><p>One welcome voucher per member.</p></div></li>
     </ol>
     <div class="alert" style="margin-top:12px">ⓘ No credential yet? Get it first on the AirAsia promotion page.</div>
   </section>
 
   <section class="s01-sec" style="background:#E8F1FF">
-    <div class="s01-head"><span class="s01-num">BENEFITS BY TIER</span><h2 class="h2">Higher tier,<br>bigger package</h2><p class="lead" style="font-size:13px">Your tier is checked when you log in.</p></div>
-    <div class="s01-tabs" role="tablist">${Object.keys(TIERS).map(k => `<button type="button" role="tab" aria-selected="${k === (S.preview || 'black')}" data-tab="${k}">${TIERS[k].name}</button>`).join('')}</div>
+    <div class="s01-head"><span class="s01-num">YOUR BENEFIT</span><h2 class="h2">One welcome voucher<br>for every member</h2><p class="lead" style="font-size:13px">All AirAsia Rewards members get the same voucher, whatever their tier.</p></div>
     <div class="pkg" style="background:#fff">
-      <div class="pkg__h"><div><small>${pv.name.toUpperCase()} PACKAGE</small><b>${pv.pkg}</b><small>${pv.items.length} voucher${pv.items.length > 1 ? 's' : ''} · issued together</small></div><div class="pkg__tot">Total value<b>${won(pv.total)}</b></div></div>
+      <div class="pkg__h"><div><small>WELCOME VOUCHER</small><b>${pv.pkg}</b><small>1 voucher · one per member</small></div><div class="pkg__tot">Value<b>${pv.value}</b></div></div>
       <div class="tickets">${pv.items.map(i => ticket(i, false)).join('')}</div>
     </div>
-    <p class="fine" style="margin-top:8px">One package per member. Products and values are examples.</p>
+    <p class="fine" style="margin-top:8px">Partner and value to be confirmed.</p>
   </section>
 
   <section class="s01-sec" style="background:#EAF7F2">
     <div class="s01-head"><span class="s01-num">HOW TO USE</span><h2 class="h2">Just show the barcode</h2></div>
     <ol class="s01-steps">
-      <li><i style="background:#fff">📱</i><div><small>STEP 1</small><b>Open My package</b><p>Log in again anytime. Your vouchers stay here.</p></div></li>
+      <li><i style="background:#fff">📱</i><div><small>STEP 1</small><b>Open My voucher</b><p>Log in again anytime. Your voucher stays here.</p></div></li>
       <li><i style="background:#fff">▥</i><div><small>STEP 2</small><b>Show the barcode</b><p>Present it at the counter before you pay.</p></div></li>
       <li><i style="background:#fff">✓</i><div><small>STEP 3</small><b>Done!</b><p>The staff scans it and applies your voucher.</p></div></li>
     </ol>
   </section>
 
   <section class="s01-sec">
-    <div class="s01-head"><span class="s01-num">WHERE TO USE</span><h2 class="h2">Popular spots in Korea</h2></div>
-    <div class="s01-brands">
-      <div style="--b:var(--oy)"><i>🛍</i><b>Olive Young</b><span>K-beauty stores</span></div>
-      <div style="--b:var(--gs)"><i>🥤</i><b>GS25</b><span>Convenience stores</span></div>
-      <div style="--b:var(--kfv)"><i>🏯</i><b>Korean Folk Village</b><span>Yongin</span></div>
+    <div class="s01-head"><span class="s01-num">WHERE TO USE</span><h2 class="h2">Partner stores in Korea</h2></div>
+    <div class="s01-brands" style="grid-template-columns:1fr">
+      <div style="--b:var(--skp)"><i>🎁</i><b>Partner (TBD)</b><span>One partner from Olive Young · GS25 · Korean Folk Village</span></div>
     </div>
   </section>
 
   <section class="s01-sec" style="padding-top:0">
     <div class="s01-head"><span class="s01-num">FAQ</span><h2 class="h2">Questions?</h2></div>
     <div class="s01-faq">
-      <details><summary>Who can join?</summary><p>AirAsia members who have an AirAsia Membership Credential in their AIR Wallet.</p></details>
-      <details><summary>How do I get my package?</summary><p>After verification, tap "Get my package". All vouchers in your tier package are issued at once. One package per member.</p></details>
-      <details><summary>My tier changed after I joined.</summary><p>Your tier is fixed when your credential is verified. Later changes are not reflected.</p></details>
+      <details><summary>Who can join?</summary><p>AirAsia Rewards members who have an AirAsia Rewards Credential in their AIR Wallet.</p></details>
+      <details><summary>How do I get my voucher?</summary><p>After verification, tap "Get my voucher". One voucher per member.</p></details>
+      <details><summary>Does my tier matter?</summary><p>No. Every AirAsia Rewards member gets the same voucher.</p></details>
       <details><summary>Verification failed. What now?</summary><p>Log in with your AirAsia account email and check your credential hasn't expired. Still stuck? Contact us.</p></details>
     </div>
   </section>
 
   <div style="padding:0 20px 20px"><div class="card s01-notes"><b>ⓘ Please note</b><ul>
-    <li>Limited quantities. If any voucher in a package runs out, that package can no longer be issued.</li>
-    <li>One package per member. All vouchers are issued together.</li>
+    <li>Limited quantities. The event ends when all vouchers are claimed.</li>
+    <li>One voucher per member.</li>
     <li>Only one valid AirAsia credential is kept per account. Your latest valid credential is checked.</li>
     <li>Vouchers cannot be exchanged for cash.</li></ul></div></div>
   <footer class="s01-foot"><b>OK Cashbag × AirAsia</b><br>Operated by SK planet Co., Ltd. · Terms · Privacy Policy<br>Prototype for review. Copy and benefits are examples.</footer>
-  <div class="s01-dock is-hidden"><button type="button" class="btn btn--skp" data-goto="S-LOGIN">Log in with AIR</button></div>`; };
+  <div class="s01-dock is-hidden"><button type="button" class="btn btn--skp" data-goto="S-LOGIN">Log in with AirAsia account</button></div>`; };
 
 // S-01 하단 고정 버튼: 히어로 버튼이 화면에 보이는 동안은 숨기고, 스크롤로 사라지면 노출
 function bindDock() {
@@ -539,7 +528,7 @@ const STEPS = [
       <div class="consent" id="consent" data-flag="aaAgreed" data-btn="#btn-aa-agree">
         <label><input type="checkbox" data-all> Agree to all (required)</label>
         <label><input type="checkbox" data-c> <span><span class="req">[Required]</span> Korea benefits promotion terms</span></label>
-        <label><input type="checkbox" data-c> <span><span class="req">[Required]</span> Sharing my email and membership tier with AIR (MOCA Network) to issue my credential</span></label>
+        <label><input type="checkbox" data-c> <span><span class="req">[Required]</span> Sharing my email and AirAsia Rewards membership status with AIR (MOCA Network) to issue my credential</span></label>
         <label><input type="checkbox" data-c> <span><span class="req">[Required]</span> Creating an AIR account for this email if I don't have one</span></label>
       </div>
       <button type="button" class="btn btn--aa" id="btn-aa-agree" data-goto="A-ISSUE" disabled>Agree and continue</button>
@@ -551,9 +540,9 @@ const STEPS = [
   { id: 'A-ISSUE', phase: 1, own: 'aa', name: '이메일 기반 Credential 발급', url: URL_AA,
     screen: () => `${hdAA()}<div class="p" style="--c:var(--aa)">${S.sdk === 0
       ? `<span class="eyebrow">Korea benefits</span><h1 class="h2">Get your membership credential</h1>
-         <p class="lead">We'll issue a credential that proves your AirAsia tier. Use it to claim your package on OK Cashbag.</p>
+         <p class="lead">We'll issue a credential that proves you're an AirAsia Rewards member. Use it to claim your voucher on OK Cashbag.</p>
          <div class="sdk__row"><span>AirAsia account email</span><b>${AA_EMAIL}</b></div>
-         <div class="sdk__row"><span>Membership tier</span><b>${T().name}</b></div>
+         <div class="sdk__row"><span>AirAsia Rewards member</span><b>Yes</b></div>
          <div class="sdk__row"><span>Valid until</span><b>12 months</b></div>
          <div class="card" style="font-size:12.5px">Your credential is linked to this verified email. If you don't have an AIR account yet, one is created for this email.</div>
          <button type="button" class="btn btn--aa" data-sdk="1">Issue my credential</button>
@@ -561,18 +550,18 @@ const STEPS = [
       : S.sdk === 1
       ? `<div class="spin" style="border-top-color:var(--aa)"></div><p class="sdk__t" style="text-align:center">Issuing your credential…</p>`
       : `<div class="okmark"><svg class="i"><use href="#i-check"/></svg></div><p class="sdk__t" style="text-align:center">Credential issued</p>
-         <p class="fine" style="text-align:center">${T().name} Membership Credential is linked to ${AA_EMAIL}.</p>
+         <p class="fine" style="text-align:center">AirAsia Rewards Credential is linked to ${AA_EMAIL}.</p>
          <button type="button" class="btn btn--aa" data-goto="A-03">Continue</button>`}</div>`,
     panel: { who: 'AirAsia (Issuer) · MOCA', where: 'AirAsia 웹/앱 (SKP 제안안) · AIR SDK 없음',
-      proc: ['이메일 인증 · 동의(A-AUTH) 후 [Issue my credential] 클릭', 'AirAsia 서버가 회원 등급을 조회해 가입 이메일로 발급 요청 (AIR Direct issuance)', 'AIR가 이메일로 AIR 계정을 찾고, 없으면 자동 생성 → Credential을 고객 지갑에 암호화 저장', '고객은 AIR 로그인·가입 절차 없음 (발급 완료 안내만 받음)', '계정당 유효 Credential 1개만 유지 (만료분은 남을 수 있음 · Q7 확인)', 'SKP는 관여하지 않음 (생성 이력·명단 미수신)'],
-      data: [['AirAsia → AIR (MOCA)', '회원 가입 이메일, tier, 유효기간'], ['AIR → 고객 AIR Wallet', 'AirAsia Membership Credential (암호화 저장)']],
-      ask: ['Q5. Credential 스키마: 이름, attribute(tier enum, 유효기간 등), 등급 표기 값', 'Q6. 재생성·갱신 정책, 등급 변경 시 기존 Credential 폐기 여부', 'Q11. 발급 시 AIR 로그인 불필요 → SKP 첫 방문 시 AIR 로그인 (SSO 불필요) 이해가 맞는지 (회신 대기)'] } },
+      proc: ['이메일 인증 · 동의(A-AUTH) 후 [Issue my credential] 클릭', 'AirAsia 서버가 Rewards 회원 여부를 확인해 가입 이메일로 발급 요청 (AIR Direct issuance · 등급 구분 없음)', 'AIR가 이메일로 AIR 계정을 찾고, 없으면 자동 생성 → Credential을 고객 지갑에 암호화 저장', '고객은 AIR 로그인·가입 절차 없음 (발급 완료 안내만 받음)', '계정당 유효 Credential 1개만 유지 (만료분은 남을 수 있음 · Q7 확인)', 'SKP는 관여하지 않음 (생성 이력·명단 미수신)'],
+      data: [['AirAsia → AIR (MOCA)', '회원 가입 이메일, 회원 여부(Yes/No), 유효기간'], ['AIR → 고객 AIR Wallet', 'AirAsia Rewards Credential (암호화 저장)']],
+      ask: ['Q5. Credential 스키마: 이름, attribute(회원 여부, 유효기간 등)', 'Q6. 재생성·갱신 정책. 회원 여부 No Credential도 발급되는지, 회원에게만 발급되는지', 'Q11. 발급 시 AIR 로그인 불필요 → SKP 첫 방문 시 AIR 로그인 (SSO 불필요) 이해가 맞는지 (회신 대기)'] } },
 
   { id: 'A-03', phase: 1, own: 'aa', name: 'Credential 생성 완료', url: URL_AA,
     screen: () => `${hdAA()}<div class="p" style="--c:var(--aa)">
       <span class="eyebrow">Credential ready</span><h1 class="h2">Your credential is ready</h1>
-      ${vc(S.tier)}
-      <div class="alert"><svg class="i"><use href="#i-info"/></svg><span>On OK Cashbag, log in to AIR with <b>${AA_EMAIL}</b>, the email of your AirAsia account.</span></div>
+      ${vc()}
+      <div class="alert"><svg class="i"><use href="#i-info"/></svg><span>On OK Cashbag, tap "Log in with AirAsia account" and use <b>${AA_EMAIL}</b>, the email of your AirAsia account.</span></div>
       <button type="button" class="btn btn--aa" data-goto="S-01">Get benefits on OK Cashbag →</button>
       <p class="fine">We've also sent this link to you by email and SMS.</p>
       <p class="fine">${t('aa_note')}</p></div>`,
@@ -585,7 +574,7 @@ const STEPS = [
   { id: 'S-01', phase: 2, own: 'skp', name: 'SKP 프로모션 메인', url: URL_SKP,
     screen: pageS01,
     panel: { who: 'SKP', where: 'OCB 도메인 하위 서브 경로 · AIR SDK 탑재',
-      proc: ['A-03 버튼 또는 이메일·SMS 링크로 진입', '구성: 히어로(서울 일러스트) · 참여 방법 3단계 · 등급별 패키지 미리보기(탭) · 사용 방법 · 사용처 · FAQ · 유의사항 · 하단 고정 로그인', '등급 탭은 미리보기일 뿐 등급 선택·확정이 아님 (확정은 검증 시)', '[Log in with AIR] → AIR SDK 로그인 호출', '[View my vouchers] (기존 참여자용 텍스트 버튼) → 로그인 후 수령 고객은 쿠폰 목록(S-04), 검증만 한 고객은 패키지(S-03P), 미참여 고객은 일반 흐름', '상단 ? 아이콘 → 문의 시트 (S-05)'],
+      proc: ['A-03 버튼 또는 이메일·SMS 링크로 진입', '구성: 히어로(서울 일러스트) · 참여 방법 3단계 · 혜택 안내(쿠폰 1종) · 사용 방법 · 사용처 · FAQ · 유의사항 · 하단 고정 로그인', '등급 구분 없이 모든 AirAsia Rewards 회원이 같은 쿠폰 1종을 받음 (정책서 2.5)', '[Log in with AirAsia account] → AIR SDK 로그인 호출 (버튼 아래 "같은 이메일로 로그인" 안내)', '[View my voucher] (기존 참여자용 텍스트 버튼) → 로그인 후 수령 고객은 쿠폰(S-04), 검증만 한 고객은 쿠폰 받기(S-03P), 미참여 고객은 일반 흐름', '상단 ? 아이콘 → 문의 시트 (S-05)'],
       data: [],
       ask: ['Q10. SKP 서비스 도메인(개발·스테이징·운영)의 SDK 허용 Origin 등록 절차'] } },
 
@@ -595,14 +584,14 @@ const STEPS = [
       <button type="button" class="btn btn--sdk" data-login>Continue with email</button>
       <p class="fine" style="text-align:center">Use your AirAsia account email (${AA_EMAIL}).</p>`),
     panel: { who: 'MOCA (AIR SDK)', where: 'SKP 페이지 위 SDK 화면',
-      proc: ['AIR SDK 로그인 (SKP 파트너) · 대부분 고객의 첫 AIR 로그인', 'AirAsia 가입 이메일로 로그인해야 발급 때 자동 생성된 AIR 계정·Credential에 연결됨 (다른 이메일이면 빈 계정)', 'SKP 서버가 AIR 식별자로 동의·검증 이력 조회', '로그인만으로는 Credential 보유 여부를 알 수 없음 → 검증 단계에서 확인 (Q13 확인)', '분기: 검증 완료 → 내 패키지 / 동의 이력 없음 → 동의 / 동의만 있음 → 바로 검증'],
+      proc: ['AIR SDK 로그인 (SKP 파트너) · 대부분 고객의 첫 AIR 로그인', 'AirAsia 가입 이메일로 로그인해야 발급 때 자동 생성된 AIR 계정·Credential에 연결됨 (다른 이메일이면 빈 계정)', 'SKP 서버가 AIR 식별자로 동의·검증 이력 조회', '로그인만으로는 Credential 보유 여부를 알 수 없음 → 검증 단계에서 확인 (Q13 확인)', '분기: 검증 완료 → 내 쿠폰 / 동의 이력 없음 → 동의 / 동의만 있음 → 바로 검증'],
       data: [['AIR SDK → SKP', 'AIR 계정 식별자']],
-      ask: ['Q11. 발급 시 로그인이 없으므로 SSO 불필요, SKP에서 첫 AIR 로그인한다는 이해가 맞는지 (회신 대기)', 'Q12. SKP가 받는 식별자 유형 (계정별 고정값인지, 이메일 포함 여부)', 'Google로 로그인할 때 같은 이메일이면 발급 때 생성된 AIR 계정으로 연결되는지'] } },
+      ask: ['"Log in with AirAsia account" 버튼 문구 사용 가능 여부, SDK 로그인 화면 내 AirAsia 표기 가능 여부', 'Q11. 발급 시 로그인이 없으므로 SSO 불필요, SKP에서 첫 AIR 로그인한다는 이해가 맞는지 (회신 대기)', 'Q12. SKP가 받는 식별자 유형 (계정별 고정값인지, 이메일 포함 여부)', 'Google로 로그인할 때 같은 이메일이면 발급 때 생성된 AIR 계정으로 연결되는지'] } },
 
   { id: 'S-02', phase: 2, own: 'skp', name: '필수 동의 (최초 1회)', url: URL_SKP,
     screen: () => `${hdSKP()}<div class="p">
       <span class="eyebrow">Step 2 of 3</span><h1 class="h2">Share your AirAsia credential</h1>
-      <div class="card" style="font-size:12.5px"><b>We check only</b> issuer, credential type, tier, validity and holder. We don't receive your name, email, member number or flight history.</div>
+      <div class="card" style="font-size:12.5px"><b>We check only</b> issuer, credential type, AirAsia Rewards membership, validity and holder. We don't receive your name, email, member number or flight history.</div>
       <div class="consent" id="consent">
         <label><input type="checkbox" data-all> Agree to all (required)</label>
         <label><input type="checkbox" data-c> <span><span class="req">[Required]</span> Collection and use of personal information</span></label>
@@ -619,93 +608,93 @@ const STEPS = [
   { id: 'S-VERIFY', phase: 2, own: 'sdk', host: 'skp', name: 'Credential 검증', url: URL_SKP,
     screen: () => sdkSheet(pageS01(), S.sdk === 0
       ? `${sdkApp('skp')}<p class="sdk__t">Share proof of your membership?</p>
-         <div class="sdk__row"><span>Requested</span><b>AirAsia Membership Credential</b></div>
-         <div class="sdk__row"><span>Checks</span><b>Issuer · tier · validity</b></div>
+         <div class="sdk__row"><span>Requested</span><b>AirAsia Rewards Credential</b></div>
+         <div class="sdk__row"><span>Checks</span><b>Issuer · membership · validity</b></div>
          <p class="fine">Your credential stays in your AIR Wallet. Only the verification result is shared with OK Cashbag.</p>
          <button type="button" class="btn btn--sdk" data-sdk="1">Allow</button>
          <button type="button" class="btn btn--line" data-goto="S-01">Cancel</button>`
       : S.sdk === 1
-      ? `<div class="spin"></div><p class="sdk__t" style="text-align:center">Verifying…</p><p class="fine" style="text-align:center">Issuer · validity · holder · tier</p>`
+      ? `<div class="spin"></div><p class="sdk__t" style="text-align:center">Verifying…</p><p class="fine" style="text-align:center">Issuer · validity · holder · membership</p>`
       : S.scn === 'nocred'
-      ? `<p class="sdk__t" style="text-align:center">No matching credential</p><p class="fine" style="text-align:center">We couldn't find an AirAsia Membership Credential in this AIR account.</p>
+      ? `<p class="sdk__t" style="text-align:center">No matching credential</p><p class="fine" style="text-align:center">We couldn't find an AirAsia Rewards Credential in this AIR account.</p>
          <button type="button" class="btn btn--sdk" data-goto="S-02E">Continue</button>`
       : `<div class="okmark"><svg class="i"><use href="#i-check"/></svg></div><p class="sdk__t" style="text-align:center">Verified</p>
          <button type="button" class="btn btn--sdk" data-goto="S-03">Continue</button>`),
     panel: { who: 'MOCA (AIR SDK) → SKP', where: 'SKP 페이지 위 SDK 화면',
-      proc: ['SKP Verification Program 조건으로 검증 (issuer = AirAsia, tier, 유효·미폐기, holder 일치)', 'SDK가 가장 최근 발급된 유효 Credential을 기본 선택 (계정당 유효 1개 · Q7·Q19 확인)', '검증 결과값은 tier만 받음 (Q16 확인)', '제출된 결과를 SKP 서버가 자체 검증한 뒤 참여·등급 확정 (서버 검증 성공 = 참여 확정)', '결과 코드: Compliant / Non-Compliant / NotFound → 실패 시 사유별 안내 화면(S-02E)'],
-      data: [['AIR SDK → SKP', '검증 결과 코드, tier'], ['SKP → MOCA', '없음 (SKP 서버 자체 검증)'], ['전달하지 않음', 'Credential 원문, 이름, 회원번호, 탑승 이력']],
+      proc: ['SKP Verification Program 조건으로 검증 (issuer = AirAsia, 회원 여부 = Yes, 유효·미폐기, holder 일치)', 'SDK가 가장 최근 발급된 유효 Credential을 기본 선택 (계정당 유효 1개 · Q7·Q19 확인)', '검증 결과값은 회원 여부(Yes/No)만 받음 (tier에서 변경 · MOCA 확정 필요)', '제출된 결과를 SKP 서버가 자체 검증한 뒤 참여 확정 (서버 검증 성공 = 참여 확정)', '결과 코드: Compliant / Non-Compliant(회원 여부 No 포함) / NotFound → 실패 시 사유별 안내 화면(S-02E)'],
+      data: [['AIR SDK → SKP', '검증 결과 코드, 회원 여부'], ['SKP → MOCA', '없음 (SKP 서버 자체 검증)'], ['전달하지 않음', 'Credential 원문, 이름, 회원번호, 탑승 이력']],
       ask: ['Q20. 검증 세션·수수료 정책 (Phase 1 PoC 기준)'] } },
 
   { id: 'S-02E', phase: 2, own: 'skp', name: '검증 실패 (미보유)', url: URL_SKP, branch: true,
     screen: () => `${hdSKP()}<div class="p">
       <div class="okmark" style="background:#FDECEC;color:#E5484D"><svg class="i"><use href="#i-x"/></svg></div>
       <h1 class="h2" style="text-align:center">No AirAsia credential found</h1>
-      <p class="lead" style="text-align:center">Get your membership credential from AirAsia first, then come back here.</p>
+      <p class="lead" style="text-align:center">Get your AirAsia Rewards Credential from AirAsia first, then come back here.</p>
       <button type="button" class="btn btn--aa" data-goto="A-01">Get my credential at AirAsia</button>
       <button type="button" class="btn btn--line" data-goto="S-LOGIN">Try another account</button>
       <p class="fine" style="text-align:center">Already got one? Make sure you logged in with your AirAsia account email.</p>
       <p class="fine" style="text-align:center">Need help? Contact us</p></div>`,
     panel: { who: 'SKP', where: 'SKP 페이지',
-      proc: ['결과 코드에 따라 안내 문구·버튼을 나눔 (Q18 확인)', 'SKP는 Credential을 생성하지 않음 (생성은 AirAsia에서만 가능)', 'NotFound (미보유): AirAsia 프로모션 페이지(A-01)로 이동해 생성 후 다시 SKP로 돌아오도록 안내. AirAsia 가입 이메일과 다른 이메일로 로그인한 경우도 NotFound → 같은 이메일로 다시 로그인 안내', 'Non-Compliant (만료 등 조건 미충족): 유효한 Credential 확인 안내 · AirAsia 페이지 이동', '고객 취소 · 네트워크 오류: 재시도 허용 / SKP 서버 검증 실패: 재시도 안내, 혜택 지급 안 함'],
+      proc: ['결과 코드에 따라 안내 문구·버튼을 나눔 (Q18 확인)', 'SKP는 Credential을 생성하지 않음 (생성은 AirAsia에서만 가능)', 'NotFound (미보유): AirAsia 프로모션 페이지(A-01)로 이동해 생성 후 다시 SKP로 돌아오도록 안내. AirAsia 가입 이메일과 다른 이메일로 로그인한 경우도 NotFound → 같은 이메일로 다시 로그인 안내', 'Non-Compliant (만료, 회원 여부 No 등 조건 미충족): 지급 대상 아님 · 유효한 Credential 확인 안내 · AirAsia 페이지 이동', '고객 취소 · 네트워크 오류: 재시도 허용 / SKP 서버 검증 실패: 재시도 안내, 혜택 지급 안 함'],
       data: [['SKP 내부', '검증 실패 일시·결과 코드']],
       ask: [] } },
 
-  { id: 'S-03', phase: 2, own: 'skp', name: '검증 결과 · 등급 확정', url: URL_SKP,
+  { id: 'S-03', phase: 2, own: 'skp', name: '검증 결과 · 회원 확인', url: URL_SKP,
     screen: () => `${hdSKP()}<div class="p">
-      <span class="eyebrow">Verified</span><h1 class="h2">You're a ${T().name} member</h1>
-      ${vc(S.tier, 'Verified')}
-      <dl class="kv"><div><dt>Issuer</dt><dd>AirAsia</dd></div><div><dt>Membership tier</dt><dd>${T().name}</dd></div><div><dt>Validity</dt><dd style="color:var(--ok)">Valid</dd></div><div><dt>Holder</dt><dd>Matches your account</dd></div><div><dt>Verified at</dt><dd>${today()}</dd></div></dl>
-      <div class="alert"><svg class="i"><use href="#i-info"/></svg>Your tier is now fixed for this promotion.</div>
-      <button type="button" class="btn btn--skp" data-goto="S-03P">See my ${T().name} package →</button></div>`,
+      <span class="eyebrow">Verified</span><h1 class="h2">You're an AirAsia Rewards member</h1>
+      ${vc('Verified')}
+      <dl class="kv"><div><dt>Issuer</dt><dd>AirAsia</dd></div><div><dt>AirAsia Rewards</dt><dd>Member</dd></div><div><dt>Validity</dt><dd style="color:var(--ok)">Valid</dd></div><div><dt>Holder</dt><dd>Matches your account</dd></div><div><dt>Verified at</dt><dd>${today()}</dd></div></dl>
+      <div class="alert"><svg class="i"><use href="#i-info"/></svg>You're eligible for the welcome voucher.</div>
+      <button type="button" class="btn btn--skp" data-goto="S-03P">See my voucher →</button></div>`,
     panel: { who: 'SKP', where: 'SKP 페이지',
-      proc: ['SDK 검증 결과로 받은 값(tier)만 표시', '참여·적용 등급 확정 기록 (최초 검증 성공 시점 · 이후 등급 변경 미반영)'],
-      data: [['SKP 내부', 'AIR 식별자, 검증 결과·일시, 적용 등급, 참여 상태']],
+      proc: ['SDK 검증 결과로 받은 값(회원 여부)만 표시', '참여 확정 기록 (최초 검증 성공 시점 · 이후 회원 상태가 바뀌어도 지급 결과 유지)'],
+      data: [['SKP 내부', 'AIR 식별자, 검증 결과·일시, 회원 여부, 참여 상태']],
       ask: [] } },
 
   /* ---------- Phase 3 · 혜택 (SKP) ---------- */
-  { id: 'S-03P', phase: 3, own: 'skp', name: '혜택 패키지 받기', url: URL_SKP,
+  { id: 'S-03P', phase: 3, own: 'skp', name: '쿠폰 받기', url: URL_SKP,
     screen: () => `${hdSKP()}<div class="p">
-      <div class="sdk__row"><span>${T().name} member · Verified</span><span>›</span></div>
-      <div class="pkg"><div class="pkg__h"><div><small>${T().name.toUpperCase()} PACKAGE</small><b>${T().pkg}</b><small>${T().items.length} vouchers · issued together</small></div><div class="pkg__tot">Total value<b>${won(T().total)}</b></div></div>
-        ${S.claimed ? `<div class="done"><svg class="i"><use href="#i-check"/></svg>Package received · ${today()}</div>` : ''}
+      <div class="sdk__row"><span>AirAsia Rewards member · Verified</span><span>›</span></div>
+      <div class="pkg"><div class="pkg__h"><div><small>WELCOME VOUCHER</small><b>${T().pkg}</b><small>1 voucher · one per member</small></div><div class="pkg__tot">Value<b>${T().value}</b></div></div>
+        ${S.claimed ? `<div class="done"><svg class="i"><use href="#i-check"/></svg>Voucher received · ${today()}</div>` : ''}
         <div class="tickets">${T().items.map((i, n) => ticket(i, S.claimed, n)).join('')}</div></div>
-      ${S.claimed ? `<p class="fine" style="text-align:center">Your vouchers stay here. Log in anytime to view them.</p>`
-        : `<div class="alert"><svg class="i"><use href="#i-info"/></svg>All vouchers are issued at once. One package per member.</div>
-           <button type="button" class="btn btn--skp" data-claim>Get my package</button>`}</div>`,
+      ${S.claimed ? `<p class="fine" style="text-align:center">Your voucher stays here. Log in anytime to view it.</p>`
+        : `<div class="alert"><svg class="i"><use href="#i-info"/></svg>One voucher per member. Limited quantities.</div>
+           <button type="button" class="btn btn--skp" data-claim>Get my voucher</button>`}</div>`,
     // 받기 확인 시트 (SKP 화면 · SDK 아님) → 지급 완료 시 S-04 혜택 상세로 이동
     overlay: () => !S.confirm ? '' : `<div class="dim"></div><div class="sdk sheet-skp">
       ${S.issuing
-        ? `<div class="spin" style="border-top-color:var(--skp);border-color:var(--skp-soft);border-top-color:var(--skp)"></div><p class="sdk__t" style="text-align:center">Issuing your package…</p><p class="fine" style="text-align:center">Checking availability and issuing all vouchers together.</p>`
-        : `<p class="sdk__t">Get your package now?</p>
-           <div class="pkg" style="padding:12px"><div class="pkg__h"><div><b>${T().pkg}</b><small>${T().items.length} vouchers</small></div><div class="pkg__tot">Total<b>${won(T().total)}</b></div></div>
+        ? `<div class="spin" style="border-top-color:var(--skp);border-color:var(--skp-soft);border-top-color:var(--skp)"></div><p class="sdk__t" style="text-align:center">Issuing your voucher…</p><p class="fine" style="text-align:center">Checking availability.</p>`
+        : `<p class="sdk__t">Get your voucher now?</p>
+           <div class="pkg" style="padding:12px"><div class="pkg__h"><div><b>${T().pkg}</b><small>1 voucher</small></div><div class="pkg__tot">Value<b>${T().value}</b></div></div>
              ${T().items.map(([id, t, v]) => `<div class="sdk__row" style="background:#fff"><span>${BR[id][0]} · ${t}</span><b>${v}</b></div>`).join('')}</div>
-           <p class="fine">All vouchers are issued together, right away. You can get this package only once, and it can't be changed or exchanged.</p>
-           <div style="display:grid;grid-template-columns:1fr 2fr;gap:8px"><button type="button" class="btn btn--line" data-cancel>Cancel</button><button type="button" class="btn btn--skp" data-confirm>Get package</button></div>`}
+           <p class="fine">The voucher is issued right away. You can get it only once, and it can't be changed or exchanged.</p>
+           <div style="display:grid;grid-template-columns:1fr 2fr;gap:8px"><button type="button" class="btn btn--line" data-cancel>Cancel</button><button type="button" class="btn btn--skp" data-confirm>Get voucher</button></div>`}
       </div>`,
     panel: { who: 'SKP', where: 'SKP 페이지',
-      proc: ['[Get my package] → 받기 확인 시트 (SKP 화면): 구성·금액·1회 한정 안내', '[Get package] → SKP 서버: 참여 확정·기수령·혜택별 잔여 수량 확인', '기프티콘 API 연동으로 패키지 단위 쿠폰 지급 (하나라도 부족하면 지급 안 함)', '지급 성공 시 수량 차감·Claimed 기록 → S-04 혜택 상세로 이동', 'MOCA·AIR SDK 관여 없음'],
-      data: [['SKP 내부', '패키지 코드, 배정 쿠폰, 지급 일시·상태']],
+      proc: ['[Get my voucher] → 받기 확인 시트 (SKP 화면): 쿠폰·1회 한정 안내', '[Get voucher] → SKP 서버: 참여 확정·기수령·잔여 수량 확인', '기프티콘 API 연동으로 쿠폰 1장 지급 (쿠폰 1종 단일 재고, 소진 시 이벤트 종료 안내)', '지급 성공 시 수량 차감·Claimed 기록 → S-04 혜택 상세로 이동', 'MOCA·AIR SDK 관여 없음'],
+      data: [['SKP 내부', '배정 쿠폰, 지급 일시·상태']],
       ask: [] } },
 
   { id: 'S-04', phase: 3, own: 'skp', name: '혜택 상세 · 매장 사용', url: URL_SKP,
     // 쿠폰 목록 (11번과 같은 카드 형식) → 쿠폰을 누르면 그 쿠폰 하나의 바코드 상세가 시트로 열림
     screen: () => `${hdSKP()}<div class="p">
       <div class="done"><svg class="i"><use href="#i-check"/></svg>${T().pkg} received · ${today()}</div>
-      <p class="lead" style="font-size:13px">Tap a voucher to show its barcode at the counter.</p>
+      <p class="lead" style="font-size:13px">Tap the voucher to show its barcode at the counter.</p>
       <div class="tickets">${T().items.map(([id, title, value], i) => `<button type="button" class="ticket ticket--btn" style="--brand:${BR[id][1]}" data-vo="${i}"><div class="ticket__stub">${BR[id][2]}</div>
         <div class="ticket__body"><small>${BR[id][0]}</small><b>${value}</b><span>${title}</span><span class="open">Show barcode →</span></div></button>`).join('')}</div>
       <div class="card s01-notes"><b>Notes</b><ul><li>Cannot be exchanged for cash.</li><li>Usage status and balance may take time to update.</li><li>Follows the partner's voucher policy.</li></ul></div>
-      <button type="button" class="btn btn--line" data-goto="S-03P">Back to my package</button></div>`,
+      <button type="button" class="btn btn--line" data-goto="S-03P">Back</button></div>`,
     overlay: () => { if (S.vopen == null) return ''; const k = S.vopen, [id, title, value] = T().items[k]; return `<div class="dim" data-vclose></div><div class="sdk sheet-skp sheet-v">
       <div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:15px">${BR[id][0]}</b><button type="button" class="btn btn--line" style="width:auto;min-height:32px;padding:0 12px" data-vclose>Close</button></div>
-      <div class="voucher" style="--brand:${BR[id][1]}"><div class="voucher__h"><small>${T().pkg} · ${k + 1} of ${T().items.length}</small><b>${value}</b><small>${title}</small></div>
+      <div class="voucher" style="--brand:${BR[id][1]}"><div class="voucher__h"><small>${T().pkg}</small><b>${value}</b><small>${title}</small></div>
         <div class="voucher__b"><div class="bars"></div><div class="code">${['2371 3442 2377', '8806 1937 5520'][k] || '4410 2268 9031'}</div><p class="fine" style="margin-top:6px">Valid until 2027-06-30 · turn up screen brightness for faster scanning</p></div></div>
       <dl class="kv"><div><dt>Status</dt><dd>Not used yet</dd></div>${value.startsWith('₩') && !value.includes('off') ? `<div><dt>Remaining balance</dt><dd>${value}</dd></div>` : ''}<div><dt>Checked</dt><dd>${today()}, 10:30</dd></div></dl>
       <p class="fine" style="margin-top:-6px">Usage and balance are shown when available from the partner. <span style="color:var(--warn)">${t('api_note')}</span></p>
-      <div class="card" style="font-size:12.5px;display:grid;gap:6px"><div><b>Where to use</b><br>${{ oy: 'Olive Young stores in Korea', gs: 'GS25 convenience stores in Korea', kfv: 'Korean Folk Village ticket office, Yongin' }[id]}</div><div><b>How to use</b><br>Show this barcode at the counter before you pay.</div></div>
+      <div class="card" style="font-size:12.5px;display:grid;gap:6px"><div><b>Where to use</b><br>${{ tbd: 'Partner stores in Korea (TBD)', oy: 'Olive Young stores in Korea', gs: 'GS25 convenience stores in Korea', kfv: 'Korean Folk Village ticket office, Yongin' }[id]}</div><div><b>How to use</b><br>Show this barcode at the counter before you pay.</div></div>
     </div>`; },
     panel: { who: 'SKP · 제휴 사용처', where: 'SKP 페이지 → 매장',
-      proc: ['패키지 지급 직후 자동 진입 (또는 내 패키지에서 View voucher)', '패키지 안 쿠폰을 11번과 같은 카드 목록으로 표시', '쿠폰을 누르면 그 쿠폰 하나의 상세 시트: 쿠폰번호·바코드·유효기간·사용처·이용 방법', '매장에서 바코드 제시 → 공급사가 사용 처리 (기존 정산)', '사용 여부·잔액: 공급사 API로 확인 가능한 경우에 표기 (조회 시점 함께 표시, 불가 시 미표기)'],
+      proc: ['쿠폰 지급 직후 자동 진입 (또는 쿠폰 받기 화면에서 View voucher)', '받은 쿠폰 1장을 카드로 표시', '쿠폰을 누르면 상세 시트: 쿠폰번호·바코드·유효기간·사용처·이용 방법', '매장에서 바코드 제시 → 공급사가 사용 처리 (기존 정산)', '사용 여부·잔액: 공급사 API로 확인 가능한 경우에 표기 (조회 시점 함께 표시, 불가 시 미표기)'],
       data: [['SKP → 고객', '쿠폰번호·바코드 (본인 로그인 시에만)'], ['공급사 → SKP', '사용 여부·잔액 (조회 API 지원 시)']],
       ask: [] } },
 
@@ -722,7 +711,7 @@ const IDX = Object.fromEntries(STEPS.map((s, i) => [s.id, i]));
 /* ===== 다국어 (KO / EN): 화면 밖 설명 영역. 폰 화면 문구는 원래 영어 ===== */
 const UI = {
   ko: { sub: '(MOCA 싱크용 v0.1)', lg_aa: 'AirAsia 페이지', lg_sdk: 'AIR SDK 화면 (MOCA 제공)', lg_skp: 'SKP 페이지', sum_btn: '전체 단계 요약표',
-        scn: '시나리오', tier: 'AirAsia 회원 등급', scn_normal: '정상 (생성 → 검증 → 지급)', scn_nocred: 'Credential 미보유로 SKP 진입', scn_ret: '재방문 (검증 완료 고객)',
+        scn: '시나리오', scn_normal: '정상 (생성 → 검증 → 지급)', scn_nocred: 'Credential 미보유로 SKP 진입', scn_ret: '재방문 (검증 완료 고객)',
         scn_note: '시나리오를 바꾸면 처음 화면으로 돌아갑니다.', prev: '← 이전', next: '다음 →',
         sum_t: '전체 단계 요약', close: '닫기', sum_desc: '행을 누르면 해당 화면으로 이동합니다. SDK 처리와 데이터는 가정이며 MOCA 확인 필요 항목은 Q 번호로 표시했습니다.',
         own_aa: 'AirAsia 페이지', own_sdk: 'AIR SDK 화면 · MOCA 제공', own_skp: 'SKP 페이지', over_aa: 'AirAsia 페이지 위에 표시', over_skp: 'SKP 페이지 위에 표시',
@@ -733,7 +722,7 @@ const UI = {
         admin: '최근 문의에 답변 등록 (Admin 시뮬레이션)', admin_none: '답변할 문의가 없습니다. 먼저 문의를 등록하세요.',
         aa_note: 'SKP 제안 화면 · 실제 구현은 AirAsia', api_note: '(공급사 API 확인 가능 시 표기 · C-06)' },
   en: { sub: '(for MOCA sync · v0.1)', lg_aa: 'AirAsia page', lg_sdk: 'AIR SDK screen (by MOCA)', lg_skp: 'SKP page', sum_btn: 'Step summary',
-        scn: 'Scenario', tier: 'AirAsia member tier', scn_normal: 'Normal (create → verify → issue)', scn_nocred: 'Enter SKP without a credential', scn_ret: 'Returning (already verified)',
+        scn: 'Scenario', scn_normal: 'Normal (create → verify → issue)', scn_nocred: 'Enter SKP without a credential', scn_ret: 'Returning (already verified)',
         scn_note: 'Changing the scenario returns to the first screen.', prev: '← Prev', next: 'Next →',
         sum_t: 'Step summary', close: 'Close', sum_desc: 'Click a row to open that screen. SDK processing and data are assumptions; items to confirm with MOCA are marked with Q numbers.',
         own_aa: 'AirAsia page', own_sdk: 'AIR SDK screen · by MOCA', own_skp: 'SKP page', over_aa: 'shown over the AirAsia page', over_skp: 'shown over the SKP page',
@@ -750,41 +739,41 @@ const EN = {
     ask: ['Q1. Scope, schedule and exposure channels of the AirAsia page'] },
   'A-AUTH': { name: 'Email verification · benefit consent', who: 'AirAsia', where: 'AirAsia web/app (SKP proposal)', proc: [], data: [], ask: [] },
   'A-ISSUE': { name: 'Email-based credential issuance', who: 'AirAsia (Issuer) · MOCA', where: 'AirAsia web/app (SKP proposal) · no AIR SDK',
-    proc: ['After email verification · consent (A-AUTH), the member taps [Issue my credential]', 'AirAsia server looks up the member tier and requests issuance with the account email (AIR Direct issuance)', 'AIR finds the AIR account for that email, or creates one if none exists → credential stored encrypted in the customer\'s wallet', 'No AIR login or sign-up for the customer (only a completion message)', 'Only one valid credential is kept per account (expired ones may remain · confirmed in Q7)', 'SKP is not involved (receives no creation history or member list)'],
-    data: [['AirAsia → AIR (MOCA)', 'Member account email, tier, validity period'], ['AIR → customer AIR Wallet', 'AirAsia Membership Credential (stored encrypted)']],
-    ask: ['Q5. Credential schema: name, attributes (tier enum, validity, etc.) and tier values', 'Q6. Re-creation / renewal policy; whether existing credentials are revoked when the tier changes', 'Q11. No AIR login at issuance → first AIR login happens on SKP (no SSO needed): is this correct? (awaiting reply)'] },
+    proc: ['After email verification · consent (A-AUTH), the member taps [Issue my credential]', 'AirAsia server checks AirAsia Rewards membership and requests issuance with the account email (AIR Direct issuance · no tiers)', 'AIR finds the AIR account for that email, or creates one if none exists → credential stored encrypted in the customer\'s wallet', 'No AIR login or sign-up for the customer (only a completion message)', 'Only one valid credential is kept per account (expired ones may remain · confirmed in Q7)', 'SKP is not involved (receives no creation history or member list)'],
+    data: [['AirAsia → AIR (MOCA)', 'Member account email, membership (Yes/No), validity period'], ['AIR → customer AIR Wallet', 'AirAsia Rewards Credential (stored encrypted)']],
+    ask: ['Q5. Credential schema: name, attributes (membership, validity, etc.)', 'Q6. Re-creation / renewal policy; whether a credential with membership = No is ever issued, or only members get one', 'Q11. No AIR login at issuance → first AIR login happens on SKP (no SSO needed): is this correct? (awaiting reply)'] },
   'A-03': { name: 'Credential created', who: 'AirAsia', where: 'AirAsia web/app (SKP proposal)',
-    proc: ['Completion message (AIR shows no screen or notification, so AirAsia informs the member)', 'Key message: log in to AIR on OK Cashbag with the AirAsia account email', 'Moves to the SKP promotion page (different domain)', 'Sends the link by email · SMS for later access'],
+    proc: ['Completion message (AIR shows no screen or notification, so AirAsia informs the member)', 'Key message: on OK Cashbag, tap "Log in with AirAsia account" and use the AirAsia account email', 'Moves to the SKP promotion page (different domain)', 'Sends the link by email · SMS for later access'],
     data: [['AirAsia → SKP', 'Link only (no personal data beyond referral parameters)']],
     ask: ['Q8. Whether referral (utm) parameters are added to the SKP link', 'Q9. Who sends the email · SMS, and when (to be discussed with AirAsia)'] },
   'S-01': { name: 'SKP promotion main', who: 'SKP', where: 'Sub-path under the OCB domain · AIR SDK embedded',
-    proc: ['Entry via the A-03 button or the email · SMS link', 'Sections: hero (Seoul illustration) · 3 steps · tier package preview (tabs) · how to use · where to use · FAQ · notes · sticky login', 'Tier tabs are a preview only, not a tier selection (the tier is fixed at verification)', '[Log in with AIR] → calls AIR SDK login', '[View my vouchers] (text button for returning members) → after login: claimed → voucher list (S-04), verified only → package (S-03P), not joined → normal flow', '? icon in the top bar → inquiry sheet (S-05)'],
+    proc: ['Entry via the A-03 button or the email · SMS link', 'Sections: hero (Seoul illustration) · 3 steps · benefit (one voucher) · how to use · where to use · FAQ · notes · sticky login', 'No tiers: every AirAsia Rewards member gets the same single voucher (policy 2.5)', '[Log in with AirAsia account] → calls AIR SDK login (helper text below: use the same email as the AirAsia account)', '[View my voucher] (text button for returning members) → after login: claimed → voucher (S-04), verified only → get voucher (S-03P), not joined → normal flow', '? icon in the top bar → inquiry sheet (S-05)'],
     data: [], ask: ['Q10. Process to register SKP domains (dev · staging · prod) as allowed SDK origins'] },
   'S-LOGIN': { name: 'AIR login (on SKP)', who: 'MOCA (AIR SDK)', where: 'SDK screen over the SKP page',
-    proc: ['AIR SDK login (SKP as partner) · the first AIR login for most customers', 'The customer must log in with the AirAsia account email to reach the AIR account and credential created at issuance (another email leads to an empty account)', 'SKP server looks up consent · verification history by AIR identifier', 'Login alone does not show whether a credential is held → checked at verification (confirmed in Q13)', 'Branch: verified → My package / no consent → consent / consent only → verify directly'],
+    proc: ['AIR SDK login (SKP as partner) · the first AIR login for most customers', 'The customer must log in with the AirAsia account email to reach the AIR account and credential created at issuance (another email leads to an empty account)', 'SKP server looks up consent · verification history by AIR identifier', 'Login alone does not show whether a credential is held → checked at verification (confirmed in Q13)', 'Branch: verified → My voucher / no consent → consent / consent only → verify directly'],
     data: [['AIR SDK → SKP', 'AIR account identifier']],
-    ask: ['Q11. No login at issuance, so no SSO is needed and the first AIR login happens on SKP: is this correct? (awaiting reply)', 'Q12. Type of identifier SKP receives (fixed per account? includes email?)', 'With Google login, does the same email connect to the AIR account created at issuance?'] },
+    ask: ['Can the button say "Log in with AirAsia account", and can the SDK login screen show AirAsia branding?', 'Q11. No login at issuance, so no SSO is needed and the first AIR login happens on SKP: is this correct? (awaiting reply)', 'Q12. Type of identifier SKP receives (fixed per account? includes email?)', 'With Google login, does the same email connect to the AIR account created at issuance?'] },
   'S-02': { name: 'Required consent (first time only)', who: 'SKP', where: 'SKP page',
     proc: ['Required consent after login and before verification (first time only)', 'Consent history stored (by AIR identifier)', '[Agree] → AIR SDK verification request'],
     data: [['SKP internal', 'Consent items · version · time']],
     ask: ['Q14. Does the SDK verification screen have its own approval (Allow) step? If it overlaps with SKP consent, how can they be merged?', 'Q15. Input for the cross-border transfer review: location and operator of the AIR Identity · Wallet · verification servers, and data exchanged between SKP and AIR'] },
   'S-VERIFY': { name: 'Credential verification', who: 'MOCA (AIR SDK) → SKP', where: 'SDK screen over the SKP page',
-    proc: ['Verified against the SKP Verification Program (issuer = AirAsia, tier, valid · not revoked, holder match)', 'The SDK picks the most recently issued valid credential by default (one valid per account · confirmed in Q7 · Q19)', 'SKP receives only the tier as the result value (confirmed in Q16)', 'SKP server verifies the submitted result itself, then fixes participation and tier (server verification success = participation confirmed)', 'Result codes: Compliant / Non-Compliant / NotFound → on failure, reason-specific guidance screen (S-02E)'],
-    data: [['AIR SDK → SKP', 'Result code, tier'], ['SKP → MOCA', 'None (verified by the SKP server itself)'], ['Not shared', 'Full credential, name, member number, flight history']],
+    proc: ['Verified against the SKP Verification Program (issuer = AirAsia, membership = Yes, valid · not revoked, holder match)', 'The SDK picks the most recently issued valid credential by default (one valid per account · confirmed in Q7 · Q19)', 'SKP receives only the membership (Yes/No) as the result value (changed from tier · to be confirmed by MOCA)', 'SKP server verifies the submitted result itself, then confirms participation (server verification success = participation confirmed)', 'Result codes: Compliant / Non-Compliant (incl. membership = No) / NotFound → on failure, reason-specific guidance screen (S-02E)'],
+    data: [['AIR SDK → SKP', 'Result code, membership'], ['SKP → MOCA', 'None (verified by the SKP server itself)'], ['Not shared', 'Full credential, name, member number, flight history']],
     ask: ['Q20. Verification session · fee policy (for the Phase 1 PoC)'] },
   'S-02E': { name: 'Verification failed (no credential)', who: 'SKP', where: 'SKP page',
-    proc: ['Message and buttons vary by result code (confirmed in Q18)', 'SKP does not create credentials (creation happens only at AirAsia)', 'NotFound (not held): guide the user to the AirAsia promotion page (A-01) to create one, then come back to SKP. Logging in with an email other than the AirAsia account email also returns NotFound → ask the user to log in again with that email', 'Non-Compliant (expired or conditions not met): ask the user to check for a valid credential · link to the AirAsia page', 'User cancel · network error: allow retry / SKP server verification failure: ask to retry, no benefit issued'],
+    proc: ['Message and buttons vary by result code (confirmed in Q18)', 'SKP does not create credentials (creation happens only at AirAsia)', 'NotFound (not held): guide the user to the AirAsia promotion page (A-01) to create one, then come back to SKP. Logging in with an email other than the AirAsia account email also returns NotFound → ask the user to log in again with that email', 'Non-Compliant (expired, membership = No, or other conditions not met): not eligible · ask the user to check for a valid credential · link to the AirAsia page', 'User cancel · network error: allow retry / SKP server verification failure: ask to retry, no benefit issued'],
     data: [['SKP internal', 'Failure time · result code']],
     ask: [] },
-  'S-03': { name: 'Verification result · tier confirmed', who: 'SKP', where: 'SKP page',
-    proc: ['Shows only the value received from SDK verification (tier)', 'Records participation and the applied tier (fixed at the first successful verification · later tier changes are not reflected)'],
-    data: [['SKP internal', 'AIR identifier, result · time, applied tier, participation status']],
+  'S-03': { name: 'Verification result · membership confirmed', who: 'SKP', where: 'SKP page',
+    proc: ['Shows only the value received from SDK verification (membership)', 'Records participation (fixed at the first successful verification · later membership changes do not change the result)'],
+    data: [['SKP internal', 'AIR identifier, result · time, membership, participation status']],
     ask: [] },
-  'S-03P': { name: 'Get benefit package', who: 'SKP', where: 'SKP page',
-    proc: ['[Get my package] → confirmation sheet (SKP screen): contents · value · one time only', '[Get package] → SKP server checks participation · prior claim · remaining stock per benefit', 'Vouchers are issued as one package via the Gifticon API integration (nothing is issued if any is short)', 'On success: stock deducted and Claimed recorded → moves to S-04 benefit details', 'No MOCA / AIR SDK involvement'],
-    data: [['SKP internal', 'Package code, assigned vouchers, issue time · status']], ask: [] },
+  'S-03P': { name: 'Get voucher', who: 'SKP', where: 'SKP page',
+    proc: ['[Get my voucher] → confirmation sheet (SKP screen): voucher · one time only', '[Get voucher] → SKP server checks participation · prior claim · remaining stock', 'One voucher is issued via the Gifticon API integration (single stock; the event ends when it runs out)', 'On success: stock deducted and Claimed recorded → moves to S-04 benefit details', 'No MOCA / AIR SDK involvement'],
+    data: [['SKP internal', 'Assigned voucher, issue time · status']], ask: [] },
   'S-04': { name: 'Benefit details · in-store use', who: 'SKP · partner stores', where: 'SKP page → store',
-    proc: ['Opens right after the package is issued (or via View voucher in My package)', 'Vouchers in the package are listed as cards, same as screen 11', 'Tap a voucher to open its own detail sheet: code · barcode · validity · where · how to use', 'Show the barcode in store → the partner processes redemption (existing settlement)', 'Usage · balance: shown when available via partner API (with lookup time; hidden if unavailable)'],
+    proc: ['Opens right after the voucher is issued (or via View voucher on the Get voucher screen)', 'The received voucher is shown as a card', 'Tap the voucher to open its detail sheet: code · barcode · validity · where · how to use', 'Show the barcode in store → the partner processes redemption (existing settlement)', 'Usage · balance: shown when available via partner API (with lookup time; hidden if unavailable)'],
     data: [['SKP → customer', 'Voucher code · barcode (only when logged in)'], ['Partner → SKP', 'Usage · balance (if the lookup API is supported)']], ask: [] },
   'S-05': { name: 'Customer inquiry (Help)', who: 'SKP (customer service · Admin)', where: '? icon in the top bar of every SKP screen → bottom sheet',
     proc: ['? icon in the top bar → opens the inquiry form directly (asks to log in first if not logged in)', 'Only logged-in users can submit; participation · verification · issuance history is linked by AIR identifier', 'Board style: only topic + message are entered (no email collected; users are told not to put personal data in the message)', 'Replies are not emailed: the operator posts a reply in Admin and the customer checks it in "My inquiries" (Received → Answered)', 'With no reply notification, the expected reply time is shown (N business days · TBD)'],
@@ -888,7 +877,6 @@ document.addEventListener('click', e => {
   if (el.hasAttribute('data-help-login')) { S.help = null; S.afterLogin = 'help'; return show('S-LOGIN'); }
   if (el.hasAttribute('data-myv')) { S.afterLogin = 'vouchers'; return show('S-LOGIN'); }   // 메인: View my vouchers
   const redraw = () => { const pg = $('#page'), top = pg.scrollTop; pg.innerHTML = STEPS[cur].screen(); pg.scrollTop = top; bindDock(); };
-  if (el.dataset.tab) { S.preview = el.dataset.tab; return redraw(); }      // S-01 등급 탭: 스크롤 위치 유지
   if (el.dataset.vo !== undefined) { S.vopen = +el.dataset.vo; return renderOverlay(); }   // S-04 쿠폰 → 바코드 시트
   if (el.hasAttribute('data-vclose')) { S.vopen = null; return renderOverlay(); }
   if (el.dataset.v !== undefined) S.vopen = +el.dataset.v;                   // 11번 View voucher → S-04에서 해당 쿠폰 시트 열기
@@ -908,7 +896,7 @@ document.addEventListener('click', e => {
     if (S.scn === 'returning') { S.verified = true; S.claimed = true; }
     if (after === 'help') { show('S-01'); S.help = 'form'; return renderOverlay(); }   // 문의하려고 로그인 → 문의 입력으로 복귀
     if (after === 'vouchers' && S.claimed) { S.vopen = null; return show('S-04'); }    // 수령 고객 → 내 쿠폰 목록
-    if (S.claimed || S.verified) return show('S-03P');                                 // 검증만 한 고객 → 패키지
+    if (S.claimed || S.verified) return show('S-03P');                                 // 검증만 한 고객 → 쿠폰 받기
     return show(S.agreed ? 'S-VERIFY' : 'S-02');
   }
   if (el.dataset.sdk) {                                         // SDK 시트 내부 진행 (확인 → 처리 중 → 완료)
@@ -918,7 +906,6 @@ document.addEventListener('click', e => {
 });
 $('#prev').addEventListener('click', () => show(Math.max(0, cur - 1)));
 $('#next').addEventListener('click', () => show(Math.min(STEPS.length - 1, cur + 1)));
-$('#opt-tier').addEventListener('change', e => { S.tier = e.target.value; show(cur); });
 $$('input[name=scn]').forEach(r => r.addEventListener('change', e => {
   S.scn = e.target.value; S.claimed = S.verified = S.agreed = S.scn === 'returning'; S.loggedIn = false; S.afterLogin = null; S.otp = ''; S.aaAgreed = false;
   show(S.scn === 'normal' ? 'A-01' : 'S-01');
@@ -944,7 +931,7 @@ $('#op-answer').addEventListener('click', () => {
   const q = S.inq.slice().reverse().find(x => x.status !== 'answered');
   if (!q) return alert(t('admin_none'));
   q.status = 'answered';
-  q.reply = 'Thanks for reaching out. We checked your promotion history and your package was issued successfully. You can find your vouchers in My vouchers.';
+  q.reply = 'Thanks for reaching out. We checked your promotion history and your voucher was issued successfully. You can find it in My voucher.';
   renderOverlay();
 });
 $$('[data-lang]').forEach(b => b.addEventListener('click', () => setLang(b.dataset.lang)));
